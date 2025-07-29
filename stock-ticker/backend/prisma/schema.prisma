@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id          String   @id @default(cuid())
+  name        String
+  inviteCode  String   @unique @map("invite_code")
+  maxPlayers  Int      @default(6) @map("max_players")
+  status      String   @default("waiting") // waiting, playing, finished
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  players     Player[]
+  gameState   GameState?
+  stocks      Stock[]
+  diceRolls   DiceRoll[]
+  
+  @@map("rooms")
+}
+
+model Player {
+  id          String   @id @default(cuid())
+  roomId      String   @map("room_id")
+  name        String
+  cash        Int      @default(5000)
+  connected   Boolean  @default(true)
+  turnOrder   Int      @map("turn_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  portfolios  Portfolio[]
+  transactions Transaction[]
+  diceRolls   DiceRoll[]
+  
+  @@map("players")
+}
+
+model GameState {
+  roomId          String   @id @map("room_id")
+  currentTurn     Int      @default(0) @map("current_turn")
+  currentPlayerId String?  @map("current_player_id")
+  phase           String   @default("waiting") // waiting, rolling, trading, game_over
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  room            Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  
+  @@map("game_states")
+}
+
+model Stock {
+  roomId       String @map("room_id")
+  stockType    String @map("stock_type") // gold, silver, bonds, oil, industrials, grain
+  currentPrice Int    @map("current_price") // in cents
+  
+  room         Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  portfolios   Portfolio[]
+  transactions Transaction[]
+  
+  @@id([roomId, stockType])
+  @@map("stocks")
+}
+
+model Portfolio {
+  playerId    String @map("player_id")
+  stockType   String @map("stock_type")
+  shares      Int    @default(0)
+  roomId      String @map("room_id")
+  
+  player      Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  stock       Stock  @relation(fields: [roomId, stockType], references: [roomId, stockType])
+  
+  @@id([playerId, stockType])
+  @@map("portfolios")
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  playerId      String   @map("player_id")
+  roomId        String   @map("room_id")
+  stockType     String   @map("stock_type")
+  action        String   // buy, sell, dividend
+  shares        Int
+  pricePerShare Int      @map("price_per_share")
+  totalAmount   Int      @map("total_amount")
+  createdAt     DateTime @default(now()) @map("created_at")
+  
+  player        Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  stock         Stock    @relation(fields: [roomId, stockType], references: [roomId, stockType])
+  
+  @@map("transactions")
+}
+
+model DiceRoll {
+  id           String   @id @default(cuid())
+  roomId       String   @map("room_id")
+  playerId     String   @map("player_id")
+  stockDie     Int      @map("stock_die")
+  actionDie    Int      @map("action_die")
+  amountDie    Int      @map("amount_die")
+  resultStock  String   @map("result_stock")
+  resultAction String   @map("result_action")
+  resultAmount Int      @map("result_amount")
+  createdAt    DateTime @default(now()) @map("created_at")
+  
+  room         Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  
+  @@map("dice_rolls")
+}
