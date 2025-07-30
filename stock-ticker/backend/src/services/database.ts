@@ -99,6 +99,46 @@ export class DatabaseService {
   }
 
   /**
+   * Mark player as disconnected
+   */
+  static async markPlayerDisconnected(playerId: string): Promise<void> {
+    await prisma.player.update({
+      where: { id: playerId },
+      data: { connected: false }
+    });
+  }
+
+  /**
+   * Mark player as connected
+   */
+  static async markPlayerConnected(playerId: string): Promise<void> {
+    await prisma.player.update({
+      where: { id: playerId },
+      data: { connected: true }
+    });
+  }
+
+  /**
+   * Get room info
+   */
+  static async getRoomInfo(roomId: string): Promise<{ id: string; name: string; inviteCode: string; status: string }> {
+    const room = await prisma.room.findUnique({
+      where: { id: roomId }
+    });
+
+    if (!room) {
+      throw new Error('Room not found');
+    }
+
+    return {
+      id: room.id,
+      name: room.name,
+      inviteCode: room.inviteCode,
+      status: room.status
+    };
+  }
+
+  /**
    * Start a game
    */
   static async startGame(roomId: string): Promise<void> {
@@ -172,6 +212,8 @@ export class DatabaseService {
 
       return {
         playerId: player.id,
+        playerName: player.name,
+        connected: player.connected,
         cash: player.cash,
         stocks,
         totalValue

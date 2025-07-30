@@ -48,6 +48,8 @@ export interface StockPrice {
 
 export interface PlayerPortfolio {
   playerId: string;
+  playerName: string;
+  connected: boolean;
   cash: number;
   stocks: Record<StockType, number>; // stockType -> shares
   totalValue: number;

@@ -12,10 +12,17 @@ export class WebSocketService {
   private io: SocketServer;
   private connectedPlayers = new Map<string, ConnectedPlayer>();
   private roomConnections = new Map<string, Set<string>>(); // roomId -> Set of socketIds
+  private static instance: WebSocketService;
 
   constructor(io: SocketServer) {
     this.io = io;
+    WebSocketService.instance = this;
     this.setupEventHandlers();
+  }
+
+  // Static method to get the current instance
+  static getInstance(): WebSocketService | null {
+    return WebSocketService.instance || null;
   }
 
   private setupEventHandlers(): void {
@@ -44,6 +51,9 @@ export class WebSocketService {
           // Join socket room
           socket.join(roomId);
 
+          // Mark player as connected in database
+          await DatabaseService.markPlayerConnected(playerId);
+
           console.log(`👤 ${playerName} (${playerId}) joined room ${roomId}`);
 
           // Notify other players in the room
@@ -53,9 +63,9 @@ export class WebSocketService {
             message: `${playerName} joined the game`
           });
 
-          // Send current game state to the joining player
+          // Send updated game state to ALL players in the room (including the new player)
           const gameState = await DatabaseService.getGameState(roomId);
-          socket.emit('game-state-updated', gameState);
+          this.io.to(roomId).emit('game-state-updated', gameState);
 
           // Send acknowledgment
           socket.emit('room-joined', {
@@ -235,12 +245,19 @@ export class WebSocketService {
       });
 
       // Handle disconnect
-      socket.on('disconnect', () => {
+      socket.on('disconnect', async () => {
         console.log(`🔌 Client disconnected: ${socket.id}`);
         
         const player = this.connectedPlayers.get(socket.id);
         if (player) {
-          const { roomId, playerName } = player;
+          const { roomId, playerName, playerId } = player;
+          
+          // Mark player as disconnected in database
+          try {
+            await DatabaseService.markPlayerDisconnected(playerId);
+          } catch (error) {
+            console.error('Error marking player as disconnected:', error);
+          }
           
           // Remove from room connections
           const roomSockets = this.roomConnections.get(roomId);
@@ -257,6 +274,14 @@ export class WebSocketService {
             playerName,
             message: `${playerName} disconnected`
           });
+
+          // Send updated game state to all remaining players
+          try {
+            const gameState = await DatabaseService.getGameState(roomId);
+            socket.to(roomId).emit('game-state-updated', gameState);
+          } catch (error) {
+            console.error('Error sending updated game state after disconnect:', error);
+          }
 
           // Remove from connected players
           this.connectedPlayers.delete(socket.id);
@@ -288,5 +313,23 @@ export class WebSocketService {
 
   public getConnectedPlayerCount(roomId: string): number {
     return this.roomConnections.get(roomId)?.size || 0;
+  }
+
+  // Static method to broadcast game state update
+  public static async broadcastGameStateUpdate(roomId: string): Promise<void> {
+    const instance = WebSocketService.getInstance();
+    if (!instance) {
+      console.error('WebSocket service not initialized');
+      return;
+    }
+
+    try {
+      const { DatabaseService } = await import('./database');
+      const gameState = await DatabaseService.getGameState(roomId);
+      instance.broadcastToRoom(roomId, 'game-state-updated', gameState);
+      console.log(`📡 Broadcasted game state update to room ${roomId}`);
+    } catch (error) {
+      console.error('Error broadcasting game state update:', error);
+    }
   }
 }

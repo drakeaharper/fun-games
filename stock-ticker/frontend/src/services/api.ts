@@ -43,6 +43,14 @@ export class APIService {
   }
 
   /**
+   * Get room info
+   */
+  static async getRoomInfo(roomId: string): Promise<APIResponse<{ id: string; name: string; inviteCode: string; status: string }>> {
+    const response = await api.get(`/rooms/${roomId}`);
+    return response.data;
+  }
+
+  /**
    * Start a game
    */
   static async startGame(roomId: string): Promise<APIResponse<{ message: string }>> {

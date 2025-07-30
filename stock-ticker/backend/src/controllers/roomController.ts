@@ -102,6 +102,47 @@ export class RoomController {
   }
 
   /**
+   * Get room info
+   */
+  static async getRoomInfo(req: Request, res: Response): Promise<void> {
+    try {
+      const { roomId } = req.params;
+
+      if (!roomId) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'MISSING_ROOM_ID', message: 'Room ID is required' }
+        });
+        return;
+      }
+
+      const roomInfo = await DatabaseService.getRoomInfo(roomId);
+      
+      res.status(200).json({
+        success: true,
+        data: roomInfo
+      });
+    } catch (error) {
+      console.error('Error getting room info:', error);
+      
+      let statusCode = 500;
+      let errorCode = 'INTERNAL_ERROR';
+      let message = 'Failed to get room info';
+
+      if (error instanceof Error && error.message === 'Room not found') {
+        statusCode = 404;
+        errorCode = 'ROOM_NOT_FOUND';
+        message = 'Room not found';
+      }
+
+      res.status(statusCode).json({
+        success: false,
+        error: { code: errorCode, message }
+      });
+    }
+  }
+
+  /**
    * Start a game
    */
   static async startGame(req: Request, res: Response): Promise<void> {
@@ -117,6 +158,10 @@ export class RoomController {
       }
 
       await DatabaseService.startGame(roomId);
+      
+      // Broadcast game state update to all players in the room
+      const { WebSocketService } = await import('../services/websocket');
+      await WebSocketService.broadcastGameStateUpdate(roomId);
       
       res.status(200).json({
         success: true,

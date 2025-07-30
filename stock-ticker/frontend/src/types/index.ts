@@ -36,6 +36,8 @@ export interface StockPrice {
 
 export interface PlayerPortfolio {
   playerId: string;
+  playerName: string;
+  connected: boolean;
   cash: number; // in cents
   stocks: Record<StockType, number>; // stockType -> shares
   totalValue: number; // in cents

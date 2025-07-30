@@ -107,8 +107,15 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
+    <div style={{ 
+      background: 'linear-gradient(145deg, var(--st-cream) 0%, #f0f4f8 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '1rem',
+      flexGrow: 1
+    }}>
+      <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md" style={{ margin: '0.75rem' }}>
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Stock Ticker</h1>

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import HomePage from './components/HomePage';
 import GameLobby from './components/GameLobby';
+import GameBoard from './components/GameBoard';
+import Header from './components/Header';
+import Footer from './components/Footer';
 import webSocketService from './services/websocket';
 
 type AppState = 'home' | 'lobby' | 'game';
@@ -14,6 +17,7 @@ interface GameSession {
 function App() {
   const [appState, setAppState] = useState<AppState>('home');
   const [gameSession, setGameSession] = useState<GameSession | null>(null);
+  const [playerCount, setPlayerCount] = useState<number>(0);
 
   useEffect(() => {
     // Cleanup WebSocket connection on component unmount
@@ -34,50 +38,91 @@ function App() {
   const handleLeaveGame = () => {
     webSocketService.disconnect();
     setGameSession(null);
+    setPlayerCount(0);
     setAppState('home');
   };
 
-  // Render based on current app state
-  switch (appState) {
-    case 'home':
-      return <HomePage onRoomJoined={handleRoomJoined} />;
+  const handlePlayerCountUpdate = (count: number) => {
+    setPlayerCount(count);
+  };
+
+  // Get header info based on current state
+  const getHeaderInfo = () => {
+    if (appState === 'home') {
+      return { showGameInfo: false };
+    }
     
-    case 'lobby':
-      if (!gameSession) {
-        return <HomePage onRoomJoined={handleRoomJoined} />;
+    return {
+      showGameInfo: true,
+      gameInfo: {
+        roomCode: gameSession?.roomId?.slice(-6).toUpperCase(),
+        playerCount: playerCount > 0 ? playerCount : undefined
       }
-      return (
-        <GameLobby
-          roomId={gameSession.roomId}
-          playerId={gameSession.playerId}
-          playerName={gameSession.playerName}
-          onGameStarted={handleGameStarted}
-        />
-      );
-    
-    case 'game':
-      if (!gameSession) {
+    };
+  };
+
+  // Render main content based on current app state
+  const renderMainContent = () => {
+    switch (appState) {
+      case 'home':
         return <HomePage onRoomJoined={handleRoomJoined} />;
-      }
-      // Game component will be created next
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-          <div className="bg-white rounded-xl shadow-xl p-8 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">🎮 Game Starting Soon!</h1>
-            <p className="text-gray-600 mb-4">The game board interface is being built...</p>
-            <button
-              onClick={handleLeaveGame}
-              className="btn-secondary"
-            >
-              Back to Home
-            </button>
-          </div>
-        </div>
-      );
-    
-    default:
-      return <HomePage onRoomJoined={handleRoomJoined} />;
-  }
+      
+      case 'lobby':
+        if (!gameSession) {
+          return <HomePage onRoomJoined={handleRoomJoined} />;
+        }
+        return (
+          <GameLobby
+            roomId={gameSession.roomId}
+            playerId={gameSession.playerId}
+            playerName={gameSession.playerName}
+            onGameStarted={handleGameStarted}
+            onPlayerCountUpdate={handlePlayerCountUpdate}
+          />
+        );
+      
+      case 'game':
+        if (!gameSession) {
+          return <HomePage onRoomJoined={handleRoomJoined} />;
+        }
+        return (
+          <GameBoard
+            roomId={gameSession.roomId}
+            playerId={gameSession.playerId}
+            playerName={gameSession.playerName}
+            onLeaveGame={handleLeaveGame}
+          />
+        );
+      
+      default:
+        return <HomePage onRoomJoined={handleRoomJoined} />;
+    }
+  };
+
+  const headerInfo = getHeaderInfo();
+
+  return (
+    <div style={{ 
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <Header 
+        showGameInfo={headerInfo.showGameInfo} 
+        gameInfo={headerInfo.gameInfo}
+      />
+      
+      <main style={{ 
+        flexGrow: 1,
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        {renderMainContent()}
+      </main>
+      
+      <Footer />
+    </div>
+  );
 }
 
 export default App;

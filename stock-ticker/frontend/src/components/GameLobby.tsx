@@ -9,9 +9,10 @@ interface GameLobbyProps {
   playerId: string;
   playerName: string;
   onGameStarted: () => void;
+  onPlayerCountUpdate: (count: number) => void;
 }
 
-const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, onGameStarted }) => {
+const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, onGameStarted, onPlayerCountUpdate }) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +37,7 @@ const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, onG
       const response = await APIService.getGameState(roomId);
       if (response.success && response.data) {
         setGameState(response.data);
+        onPlayerCountUpdate(response.data.players.length);
         
         // If game is already started, redirect to game
         if (response.data.phase !== GamePhase.WAITING) {
@@ -61,6 +63,7 @@ const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, onG
     // Listen for game state updates
     webSocketService.on('game-state-updated', (updatedGameState) => {
       setGameState(updatedGameState);
+      onPlayerCountUpdate(updatedGameState.players.length);
       
       // If game started, redirect
       if (updatedGameState.phase !== GamePhase.WAITING) {
@@ -123,18 +126,35 @@ const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, onG
     }
   };
 
-  // Extract invite code from game state or derive it
+  // Fetch real invite code from API
   useEffect(() => {
-    // For demo purposes, we'll generate a mock invite code based on room ID
-    // In a real app, this would come from the API response
-    const mockInviteCode = roomId.slice(-6).toUpperCase();
-    setInviteCode(mockInviteCode);
+    const fetchRoomInfo = async () => {
+      try {
+        const response = await APIService.getRoomInfo(roomId);
+        if (response.success && response.data) {
+          setInviteCode(response.data.inviteCode);
+        }
+      } catch (error) {
+        console.error('Error fetching room info:', error);
+        // Fallback to mock code if API fails
+        const mockInviteCode = roomId.slice(-6).toUpperCase();
+        setInviteCode(mockInviteCode);
+      }
+    };
+    
+    fetchRoomInfo();
   }, [roomId]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-xl p-8 text-center">
+      <div style={{ 
+        background: 'linear-gradient(145deg, var(--st-cream) 0%, #f0f4f8 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexGrow: 1
+      }}>
+        <div className="bg-white rounded-xl shadow-xl p-8 text-center" style={{ margin: '0.75rem' }}>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading game lobby...</p>
         </div>
@@ -144,8 +164,15 @@ const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, onG
 
   if (error && !gameState) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-xl p-8 text-center max-w-md w-full">
+      <div style={{ 
+        background: 'linear-gradient(145deg, var(--st-cream) 0%, #f0f4f8 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        flexGrow: 1
+      }}>
+        <div className="bg-white rounded-xl shadow-xl p-8 text-center max-w-md w-full" style={{ margin: '0.75rem' }}>
           <div className="text-red-500 text-5xl mb-4">⚠️</div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Connection Error</h2>
           <p className="text-gray-600 mb-4">{error}</p>
@@ -164,10 +191,14 @@ const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, onG
   const canStart = gameState && gameState.players.length >= 2 && isHost;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div style={{ 
+      background: 'linear-gradient(145deg, var(--st-cream) 0%, #f0f4f8 100%)',
+      padding: '1rem',
+      flexGrow: 1
+    }}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-lg p-6" style={{ margin: '0.75rem' }}>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Game Lobby</h1>
@@ -199,7 +230,7 @@ const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, onG
         </div>
 
         {/* Players */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-lg p-6" style={{ margin: '0.75rem' }}>
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             Players ({gameState?.players.length || 0}/6)
           </h2>
@@ -215,22 +246,31 @@ const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, onG
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
                   style={{ backgroundColor: generateAvatarColor(player.playerId) }}
                 >
-                  {getPlayerInitials(player.playerId === playerId ? playerName : `Player ${index + 1}`)}
+                  {getPlayerInitials(player.playerId === playerId ? playerName : player.playerName)}
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {player.playerId === playerId ? playerName : `Player ${index + 1}`}
-                    {index === 0 && <span className="ml-1 text-xs text-primary-600">(Host)</span>}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {player.playerId === playerId && 'You'}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {player.playerId === playerId ? playerName : player.playerName}
+                    </p>
+                    {index === 0 && (
+                      <span className="text-xs text-primary-600 bg-primary-50 px-2 py-1 rounded-full">
+                        Host
+                      </span>
+                    )}
+                  </div>
+                  {player.playerId === playerId && (
+                    <p className="text-xs text-gray-500 mt-1">You</p>
+                  )}
                 </div>
                 
                 {/* Connection Status */}
-                <div className="flex-shrink-0">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <div className="flex-shrink-0 flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${player.connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span className={`text-xs ${player.connected ? 'text-green-600' : 'text-red-600'}`}>
+                    {player.connected ? 'Online' : 'Offline'}
+                  </span>
                 </div>
               </div>
             ))}
@@ -253,7 +293,7 @@ const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, onG
         </div>
 
         {/* Game Rules */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-lg p-6" style={{ margin: '0.75rem' }}>
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Game Rules</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -285,7 +325,7 @@ const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, onG
         )}
 
         {/* Start Game Button */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="bg-white rounded-xl shadow-lg p-6" style={{ margin: '0.75rem' }}>
           {isHost ? (
             <div className="text-center">
               <button
