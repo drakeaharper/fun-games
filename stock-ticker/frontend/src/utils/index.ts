@@ -17,12 +17,48 @@ export const formatCurrencyShort = (cents: number): string => {
 };
 
 /**
- * Generate a random color for player avatars
+ * Generate MD5 hash for Gravatar (browser-compatible implementation)
+ */
+const md5 = (str: string): string => {
+  // Simple hash function for browser compatibility (for Gravatar identicon consistency)
+  const input = str.toLowerCase().trim();
+  let hash = 0;
+  
+  for (let i = 0; i < input.length; i++) {
+    const char = input.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  // Convert to hex string (simplified for identicon purposes)
+  return Math.abs(hash).toString(16).padStart(8, '0').repeat(4).substring(0, 32);
+};
+
+/**
+ * Generate Gravatar URL
+ */
+export const generateGravatarUrl = (email: string, size: number = 80): string => {
+  // For demo purposes, we'll use a hash of the player name as email
+  const hash = md5(email);
+  return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon&r=pg`;
+};
+
+/**
+ * Generate Gravatar URL from player name (fallback for when email isn't available)
+ */
+export const generateAvatarFromName = (name: string, size: number = 80): string => {
+  // Use the player name as a pseudo-email for consistent avatar generation
+  const pseudoEmail = `${name.toLowerCase().replace(/\s+/g, '.')}@stockticker.game`;
+  return generateGravatarUrl(pseudoEmail, size);
+};
+
+/**
+ * Generate a random color for player avatars (fallback)
  */
 export const generateAvatarColor = (name: string): string => {
   const colors = [
-    '#3b82f6', '#ef4444', '#10b981', '#f59e0b',
-    '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'
+    'var(--st-primary-blue)', 'var(--st-gold)', 'var(--st-green)', 'var(--st-orange)',
+    'var(--st-primary-blue-dark)', 'var(--st-gold-dark)', '#7c3aed', '#059669'
   ];
   
   let hash = 0;

@@ -1,6 +1,7 @@
 import React from 'react';
 import { PlayerPortfolio as PlayerPortfolioType, StockType, STOCK_NAMES } from '../types';
-import { formatCurrency, formatCurrencyShort, getStockEmoji, getPlayerInitials, generateAvatarColor } from '../utils';
+import { formatCurrency, formatCurrencyShort, getStockEmoji } from '../utils';
+import PlayerAvatar from './PlayerAvatar';
 
 interface PlayerPortfolioProps {
   portfolio: PlayerPortfolioType;
@@ -31,12 +32,11 @@ const PlayerPortfolio: React.FC<PlayerPortfolioProps> = ({
       <div className={`card ${isActivePlayer ? 'ring-2 ring-blue-500' : ''} ${isCurrentPlayer ? 'bg-blue-50' : ''}`}>
         <div className="flex items-center space-x-3">
           {/* Player Avatar */}
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-            style={{ backgroundColor: generateAvatarColor(portfolio.playerId) }}
-          >
-            {getPlayerInitials(playerName)}
-          </div>
+          <PlayerAvatar
+            playerName={playerName}
+            playerId={portfolio.playerId}
+            size={32}
+          />
           
           {/* Player Info */}
           <div className="flex-1 min-w-0">
@@ -66,12 +66,11 @@ const PlayerPortfolio: React.FC<PlayerPortfolioProps> = ({
       {/* Player Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-2">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
-            style={{ backgroundColor: generateAvatarColor(portfolio.playerId) }}
-          >
-            {getPlayerInitials(playerName)}
-          </div>
+          <PlayerAvatar
+            playerName={playerName}
+            playerId={portfolio.playerId}
+            size={32}
+          />
           <div>
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-bold text-gray-900">
