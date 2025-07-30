@@ -115,50 +115,124 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
       padding: '1rem',
       flexGrow: 1
     }}>
-      <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md" style={{ margin: '0.75rem' }}>
+      <div className="card" style={{ maxWidth: '500px', width: '100%' }}>
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Stock Ticker</h1>
-          <p className="text-gray-600">Classic multiplayer board game</p>
+          <div className="text-6xl mb-4">📈</div>
+          <h1 className="text-4xl font-bold mb-3" style={{ color: 'var(--st-primary-blue)', fontFamily: 'Georgia, serif' }}>
+            Stock Ticker
+          </h1>
+          <p className="text-lg" style={{ color: 'var(--st-gray-700)', fontFamily: 'Georgia, serif' }}>
+            Classic 1937 Investment Game
+          </p>
+          <div style={{ 
+            marginTop: '1.5rem',
+            marginBottom: '1rem',
+            padding: '1rem 2rem',
+            borderRadius: '1rem',
+            background: 'linear-gradient(135deg, var(--st-gold-light) 0%, var(--st-gold) 100%)',
+            border: '2px solid var(--st-gold-dark)',
+            boxShadow: '0 4px 8px rgba(217, 119, 6, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+            color: 'white',
+            fontSize: '1rem',
+            fontFamily: 'Georgia, serif',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '2px',
+              background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)'
+            }} />
+            🏛️ Build Your Financial Empire
+          </div>
         </div>
 
         {/* Tab Selection */}
-        <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+        <div style={{ 
+          display: 'flex',
+          background: 'linear-gradient(145deg, var(--st-gray-100) 0%, var(--st-gray-200) 100%)',
+          border: '2px solid var(--st-gray-300)',
+          borderRadius: '0.75rem',
+          padding: '0.5rem',
+          gap: '0.5rem',
+          marginBottom: '1rem'
+        }}>
           <button
-            className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-              activeTab === 'join'
-                ? 'bg-white text-primary-700 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
+            style={{
+              flex: 1,
+              padding: '1rem 1.5rem',
+              borderRadius: '0.5rem',
+              fontWeight: 'bold',
+              fontFamily: 'Georgia, serif',
+              fontSize: '1rem',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              background: activeTab === 'join' 
+                ? 'linear-gradient(135deg, var(--st-primary-blue) 0%, var(--st-primary-blue-dark) 100%)'
+                : 'transparent',
+              color: activeTab === 'join' ? 'white' : 'var(--st-gray-700)',
+              boxShadow: activeTab === 'join' ? '0 2px 4px rgba(30, 58, 138, 0.3)' : 'none',
+              transform: activeTab === 'join' ? 'translateY(-1px)' : 'none'
+            }}
             onClick={() => setActiveTab('join')}
           >
-            Join Game
+            🎯 Join Game
           </button>
           <button
-            className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-              activeTab === 'create'
-                ? 'bg-white text-primary-700 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
+            style={{
+              flex: 1,
+              padding: '1rem 1.5rem',
+              borderRadius: '0.5rem',
+              fontWeight: 'bold',
+              fontFamily: 'Georgia, serif',
+              fontSize: '1rem',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              background: activeTab === 'create' 
+                ? 'linear-gradient(135deg, var(--st-gold) 0%, var(--st-gold-dark) 100%)'
+                : 'transparent',
+              color: activeTab === 'create' ? 'white' : 'var(--st-gray-700)',
+              boxShadow: activeTab === 'create' ? '0 2px 4px rgba(217, 119, 6, 0.3)' : 'none',
+              transform: activeTab === 'create' ? 'translateY(-1px)' : 'none'
+            }}
             onClick={() => setActiveTab('create')}
           >
-            Create Game
+            🏗️ Create Game
           </button>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            {error}
+          <div className="mb-6 p-4 rounded-lg" style={{
+            backgroundColor: 'var(--st-salmon)',
+            border: '2px solid var(--st-red)',
+            borderRadius: '0.75rem'
+          }}>
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">⚠️</div>
+              <div>
+                <h4 className="font-bold mb-1" style={{ color: 'var(--st-red)', fontFamily: 'Georgia, serif' }}>Trading Error</h4>
+                <p className="font-medium" style={{ color: 'var(--st-red)', fontFamily: 'Georgia, serif', fontSize: '0.875rem' }}>{error}</p>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Join Room Form */}
         {activeTab === 'join' && (
-          <form onSubmit={handleJoinRoom} className="space-y-4">
+          <form onSubmit={handleJoinRoom} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div>
-              <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 mb-1">
-                Invite Code
+              <label htmlFor="inviteCode" className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)', fontFamily: 'Georgia, serif' }}>
+                📧 Trading Room Code
               </label>
               <input
                 type="text"
@@ -167,15 +241,21 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                 placeholder="ABC123"
                 maxLength={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-center text-lg font-mono tracking-wider"
+                className="form-input text-center text-xl font-bold tracking-widest"
+                style={{
+                  fontFamily: 'Georgia, serif',
+                  letterSpacing: '0.2em',
+                  fontSize: '1.25rem',
+                  padding: '1rem'
+                }}
                 disabled={isLoading}
                 required
               />
             </div>
             
             <div>
-              <label htmlFor="playerName" className="block text-sm font-medium text-gray-700 mb-1">
-                Your Name
+              <label htmlFor="playerName" className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)', fontFamily: 'Georgia, serif' }}>
+                👤 Investor Name
               </label>
               <input
                 type="text"
@@ -184,7 +264,12 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
                 onChange={(e) => setPlayerName(e.target.value)}
                 placeholder="Enter your name"
                 maxLength={20}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                className="form-input"
+                style={{
+                  fontFamily: 'Georgia, serif',
+                  fontSize: '1rem',
+                  padding: '1rem'
+                }}
                 disabled={isLoading}
                 required
               />
@@ -193,36 +278,45 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full btn-primary py-3 text-lg"
+              className="btn-primary py-4 text-lg font-bold"
+              style={{
+                fontFamily: 'Georgia, serif',
+                marginTop: '1rem'
+              }}
             >
-              {isLoading ? 'Joining...' : 'Join Game'}
+              {isLoading ? '🔄 Joining Trading Floor...' : '🚀 Join Trading Session'}
             </button>
           </form>
         )}
 
         {/* Create Room Form */}
         {activeTab === 'create' && (
-          <form onSubmit={handleCreateRoom} className="space-y-4">
+          <form onSubmit={handleCreateRoom} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div>
-              <label htmlFor="roomName" className="block text-sm font-medium text-gray-700 mb-1">
-                Room Name
+              <label htmlFor="roomName" className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)', fontFamily: 'Georgia, serif' }}>
+                🏛️ Trading Floor Name
               </label>
               <input
                 type="text"
                 id="roomName"
                 value={roomName}
                 onChange={(e) => setRoomName(e.target.value)}
-                placeholder="Family Game Night"
+                placeholder="Family Investment Club"
                 maxLength={50}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                className="form-input"
+                style={{
+                  fontFamily: 'Georgia, serif',
+                  fontSize: '1rem',
+                  padding: '1rem'
+                }}
                 disabled={isLoading}
                 required
               />
             </div>
             
             <div>
-              <label htmlFor="creatorName" className="block text-sm font-medium text-gray-700 mb-1">
-                Your Name
+              <label htmlFor="creatorName" className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)', fontFamily: 'Georgia, serif' }}>
+                👑 Host Name
               </label>
               <input
                 type="text"
@@ -231,7 +325,12 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
                 onChange={(e) => setCreatorName(e.target.value)}
                 placeholder="Enter your name"
                 maxLength={20}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                className="form-input"
+                style={{
+                  fontFamily: 'Georgia, serif',
+                  fontSize: '1rem',
+                  padding: '1rem'
+                }}
                 disabled={isLoading}
                 required
               />
@@ -240,22 +339,49 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full btn-primary py-3 text-lg"
+              className="btn-gold py-4 text-lg font-bold"
+              style={{
+                fontFamily: 'Georgia, serif',
+                marginTop: '1rem'
+              }}
             >
-              {isLoading ? 'Creating...' : 'Create Game'}
+              {isLoading ? '🔄 Opening Trading Floor...' : '🏗️ Create Trading Session'}
             </button>
           </form>
         )}
 
         {/* Game Info */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <h3 className="font-medium text-gray-900 mb-2">How to Play:</h3>
-          <ul className="text-sm text-gray-600 space-y-1">
-            <li>• Roll dice to affect stock prices</li>
-            <li>• Buy and sell stocks to make money</li>
-            <li>• Stocks split at $2.00, reset at $0.00</li>
-            <li>• First to reach your goal wins!</li>
-          </ul>
+        <div className="mt-8 pt-6" style={{ borderTop: '2px solid var(--st-gold)', borderImage: 'linear-gradient(90deg, transparent, var(--st-gold), transparent) 1' }}>
+          <div className="text-center mb-4">
+            <h3 className="font-bold text-lg" style={{ color: 'var(--st-primary-blue)', fontFamily: 'Georgia, serif' }}>
+              📊 Quick Start Guide
+            </h3>
+          </div>
+          <div style={{ 
+            background: 'linear-gradient(145deg, var(--st-cream) 0%, #fefbf3 100%)',
+            border: '1px solid var(--st-cream-dark)',
+            borderRadius: '0.75rem',
+            padding: '1rem'
+          }}>
+            <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontFamily: 'Georgia, serif' }}>
+              <li className="flex items-center gap-2" style={{ color: 'var(--st-gray-700)' }}>
+                <span style={{ color: 'var(--st-gold)' }}>🎲</span>
+                <span className="font-medium">Roll dice to move stock prices</span>
+              </li>
+              <li className="flex items-center gap-2" style={{ color: 'var(--st-gray-700)' }}>
+                <span style={{ color: 'var(--st-primary-blue)' }}>💰</span>
+                <span className="font-medium">Trade stocks to build wealth</span>
+              </li>
+              <li className="flex items-center gap-2" style={{ color: 'var(--st-gray-700)' }}>
+                <span style={{ color: 'var(--st-green)' }}>📈</span>
+                <span className="font-medium">Stocks split at $2.00, reset at $0.00</span>
+              </li>
+              <li className="flex items-center gap-2" style={{ color: 'var(--st-gray-700)' }}>
+                <span style={{ color: 'var(--st-gold)' }}>🏆</span>
+                <span className="font-medium">First to reach investment goal wins!</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
