@@ -10,7 +10,7 @@ A real-time multiplayer web version of the classic 1937 board game **Stock Ticke
 - **Backend** — Cloudflare Worker (`worker/`): serves the built frontend, the REST API, and WebSockets
 - **Game state** — one `GameRoom` Durable Object per room (identity = invite code), with all room/game state in the object's SQLite storage
 
-The original Express + Socket.IO + Prisma server lives in `backend/` but is no longer used; the Worker replaced it.
+The original Express + Socket.IO + Prisma server was removed once the Worker replaced it (see git history if you're curious).
 
 ## Getting Started
 
@@ -59,15 +59,11 @@ First time: `npx wrangler login` to authorize your Cloudflare account. Everythin
 ```
 stock-ticker/
 ├── frontend/         # React app (lobby, game board, trading UI)
-├── worker/           # Cloudflare Worker + GameRoom Durable Object (the live backend)
-├── backend/          # Legacy Express + Socket.IO + Prisma server (unused)
+├── worker/           # Cloudflare Worker + GameRoom Durable Object (the backend)
 ├── plans/            # Phased implementation plans
-├── STARTUP_GUIDE.md  # Detailed startup + troubleshooting guide (legacy stack)
 └── STOCK_TICKER_RULES.md  # Original 1937 game rules
 ```
 
 ## More Docs
 
 - [STOCK_TICKER_RULES.md](STOCK_TICKER_RULES.md) — full original game rules (dividends, splits, borrowing)
-- [STARTUP_GUIDE.md](STARTUP_GUIDE.md) — troubleshooting for the legacy Express stack
-- [backend/MANUAL_TESTING.md](backend/MANUAL_TESTING.md) — manual API testing notes (legacy)
