@@ -67,10 +67,17 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
     webSocketService.on('dice-rolled', (data) => {
       setLastDiceResult(data.diceResult);
       setIsRolling(false);
-      addNotification(`${data.playerName} rolled the dice! ${data.diceResult.resultStock.toUpperCase()} ${data.diceResult.resultAction.toUpperCase()} ${data.diceResult.resultAmount}¢`);
-      
+      const stockName = data.diceResult.resultStock.toUpperCase();
+      const rollMessage = `${data.playerName} rolled the dice! ${stockName} ${data.diceResult.resultAction.toUpperCase()} ${data.diceResult.resultAmount}¢`;
+      addNotification(data.belowPar ? `${rollMessage} — below par, no payout 📉` : rollMessage);
+
       if (data.splitOccurred) {
-        addNotification(`🎉 Stock split! ${data.diceResult.resultStock.toUpperCase()} shares doubled, price reset to $1.00`);
+        addNotification(`🎉 Stock split! ${stockName} shares doubled, price reset to $1.00`);
+      }
+
+      const myDividend = data.dividends?.find(d => d.playerId === playerId);
+      if (myDividend) {
+        addNotification(`💰 You received ${formatCurrency(myDividend.amount)} in ${stockName} dividends`);
       }
     });
 
@@ -95,12 +102,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
   };
 
   const addNotification = (message: string) => {
-    setNotifications(prev => [...prev.slice(-4), message]); // Keep last 5 notifications
-    
-    // Remove notification after 5 seconds
-    setTimeout(() => {
-      setNotifications(prev => prev.slice(1));
-    }, 5000);
+    setNotifications(prev => [...prev.slice(-9), message]); // Keep last 10 as a persistent game log
   };
 
   const handleRollDice = async () => {
@@ -228,13 +230,13 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
           </div>
         </div>
 
-        {/* Notifications */}
+        {/* Game log — last 10 events, newest on top */}
         {notifications.length > 0 && (
-          <div className="fixed top-4 right-4 z-40 space-y-2">
-            {notifications.map((notification, index) => (
+          <div className="fixed top-4 right-4 z-40 w-80 max-h-96 overflow-y-auto space-y-1">
+            {[...notifications].reverse().map((notification, index) => (
               <div
-                key={index}
-                className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 max-w-sm animate-slide-in-right"
+                key={notifications.length - index}
+                className={`bg-white border border-gray-200 rounded-lg shadow-lg p-2 ${index === 0 ? 'animate-slide-in-right' : 'opacity-80'}`}
               >
                 <p className="text-sm text-gray-900">{notification}</p>
               </div>

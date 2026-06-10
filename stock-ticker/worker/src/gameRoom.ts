@@ -256,7 +256,12 @@ export class GameRoom extends DurableObject<Env> {
   // Game actions (shared by REST RPC and WebSocket handlers)
   // ---------------------------------------------------------------------
 
-  async rollDice(playerId: string): Promise<{ diceResult: DiceResult; splitOccurred: boolean }> {
+  async rollDice(playerId: string): Promise<{
+    diceResult: DiceResult;
+    splitOccurred: boolean;
+    dividends: Array<{ playerId: string; playerName: string; amount: number }>;
+    belowPar: boolean;
+  }> {
     const diceResult = GameLogic.rollDice();
 
     this.sql.exec(
@@ -301,9 +306,15 @@ export class GameRoom extends DurableObject<Env> {
       );
     }
 
+    const dividends: Array<{ playerId: string; playerName: string; amount: number }> = [];
+    // 1937 rules: no dividend is paid on any stock whose value is under par ($1.00)
+    const belowPar = diceResult.resultAction === 'dividend' && currentPrice < STARTING_PRICE;
+
     if (diceResult.resultAction === 'dividend') {
       const holders = this.sql.exec(
-        'SELECT player_id, shares FROM portfolios WHERE stock_type = ? AND shares > 0',
+        `SELECT pf.player_id, pf.shares, p.name
+           FROM portfolios pf JOIN players p ON p.id = pf.player_id
+          WHERE pf.stock_type = ? AND pf.shares > 0`,
         diceResult.resultStock
       ).toArray();
 
@@ -322,13 +333,18 @@ export class GameRoom extends DurableObject<Env> {
             holder.player_id as string, diceResult.resultStock,
             TransactionAction.DIVIDEND, holder.shares as number, 0, dividend
           );
+          dividends.push({
+            playerId: holder.player_id as string,
+            playerName: holder.name as string,
+            amount: dividend
+          });
         }
       }
     }
 
     this.sql.exec('UPDATE game_state SET phase = ? WHERE id = 1', GamePhase.TRADING);
 
-    return { diceResult, splitOccurred };
+    return { diceResult, splitOccurred, dividends, belowPar };
   }
 
   async buyStock(playerId: string, stockType: StockType, shares: number): Promise<void> {
@@ -541,7 +557,9 @@ export class GameRoom extends DurableObject<Env> {
       playerId: data.playerId,
       playerName: attachment.playerName,
       diceResult: result.diceResult,
-      splitOccurred: result.splitOccurred
+      splitOccurred: result.splitOccurred,
+      dividends: result.dividends,
+      belowPar: result.belowPar
     });
     this.broadcast('game-state-updated', this.buildGameState());
   }

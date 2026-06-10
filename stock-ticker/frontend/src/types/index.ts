@@ -88,7 +88,14 @@ export interface WebSocketEvents {
   // Server -> Client
   'room-joined': (data: { success: boolean; roomId: string; playerId: string; playerName: string }) => void;
   'game-state-updated': (gameState: GameState) => void;
-  'dice-rolled': (data: { playerId: string; playerName: string; diceResult: DiceResult; splitOccurred: boolean }) => void;
+  'dice-rolled': (data: {
+    playerId: string;
+    playerName: string;
+    diceResult: DiceResult;
+    splitOccurred: boolean;
+    dividends?: Array<{ playerId: string; playerName: string; amount: number }>;
+    belowPar?: boolean;
+  }) => void;
   'stock-transaction': (data: { playerId: string; playerName: string; action: string; stockType: string; shares: number; message: string }) => void;
   'player-joined': (data: { playerId: string; playerName: string; message: string }) => void;
   'player-disconnected': (data: { playerId: string; playerName: string; message: string }) => void;
