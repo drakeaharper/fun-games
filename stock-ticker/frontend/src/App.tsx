@@ -12,6 +12,7 @@ interface GameSession {
   roomId: string;
   playerId: string;
   playerName: string;
+  inviteCode: string;
 }
 
 function App() {
@@ -26,8 +27,8 @@ function App() {
     };
   }, []);
 
-  const handleRoomJoined = (roomId: string, playerId: string, playerName: string) => {
-    setGameSession({ roomId, playerId, playerName });
+  const handleRoomJoined = (roomId: string, playerId: string, playerName: string, inviteCode: string) => {
+    setGameSession({ roomId, playerId, playerName, inviteCode });
     setAppState('lobby');
   };
 
@@ -55,7 +56,7 @@ function App() {
     return {
       showGameInfo: true,
       gameInfo: {
-        roomCode: gameSession?.roomId?.slice(-6).toUpperCase(),
+        roomCode: gameSession?.inviteCode,
         playerCount: playerCount > 0 ? playerCount : undefined
       }
     };
@@ -76,6 +77,7 @@ function App() {
             roomId={gameSession.roomId}
             playerId={gameSession.playerId}
             playerName={gameSession.playerName}
+            inviteCode={gameSession.inviteCode}
             onGameStarted={handleGameStarted}
             onPlayerCountUpdate={handlePlayerCountUpdate}
           />

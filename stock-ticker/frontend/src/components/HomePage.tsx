@@ -3,7 +3,7 @@ import { APIService } from '../services/api';
 import { validatePlayerName, validateRoomName, validateInviteCode } from '../utils';
 
 interface HomePageProps {
-  onRoomJoined: (roomId: string, playerId: string, playerName: string) => void;
+  onRoomJoined: (roomId: string, playerId: string, playerName: string, inviteCode: string) => void;
 }
 
 const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
@@ -55,7 +55,8 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
       onRoomJoined(
         joinResponse.data!.roomId,
         joinResponse.data!.playerId,
-        joinResponse.data!.playerName
+        joinResponse.data!.playerName,
+        roomResponse.data!.inviteCode
       );
       
     } catch (error) {
@@ -95,7 +96,8 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
       onRoomJoined(
         response.data!.roomId,
         response.data!.playerId,
-        response.data!.playerName
+        response.data!.playerName,
+        inviteCode.trim().toUpperCase()
       );
       
     } catch (error) {

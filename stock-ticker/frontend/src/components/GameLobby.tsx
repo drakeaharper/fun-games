@@ -9,16 +9,16 @@ interface GameLobbyProps {
   roomId: string;
   playerId: string;
   playerName: string;
+  inviteCode: string;
   onGameStarted: () => void;
   onPlayerCountUpdate: (count: number) => void;
 }
 
-const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, onGameStarted, onPlayerCountUpdate }) => {
+const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, inviteCode, onGameStarted, onPlayerCountUpdate }) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
-  const [inviteCode, setInviteCode] = useState<string>('');
   const [copySuccess, setCopySuccess] = useState(false);
 
   useEffect(() => {
@@ -126,25 +126,6 @@ const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, onG
       }
     }
   };
-
-  // Fetch real invite code from API
-  useEffect(() => {
-    const fetchRoomInfo = async () => {
-      try {
-        const response = await APIService.getRoomInfo(roomId);
-        if (response.success && response.data) {
-          setInviteCode(response.data.inviteCode);
-        }
-      } catch (error) {
-        console.error('Error fetching room info:', error);
-        // Fallback to mock code if API fails
-        const mockInviteCode = roomId.slice(-6).toUpperCase();
-        setInviteCode(mockInviteCode);
-      }
-    };
-    
-    fetchRoomInfo();
-  }, [roomId]);
 
   if (isLoading) {
     return (

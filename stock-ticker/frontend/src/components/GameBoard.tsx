@@ -462,9 +462,9 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
                                       <span className="font-medium">{stock.stockType.charAt(0).toUpperCase() + stock.stockType.slice(1)}</span>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
-                                      <div className="font-bold">${stock.currentPrice.toFixed(2)}</div>
+                                      <div className="font-bold">{formatCurrency(stock.currentPrice)}</div>
                                       {tradingMode === 'buy' && (
-                                        <div className="text-gray-500">Cost: ${(stock.currentPrice * 500).toFixed(2)}</div>
+                                        <div className="text-gray-500">Cost: {formatCurrency(stock.currentPrice * 500)}</div>
                                       )}
                                       {tradingMode === 'sell' && playerShares > 0 && (
                                         <div className="text-gray-500">Own: {playerShares}</div>
