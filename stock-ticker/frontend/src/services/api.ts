@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { APIResponse, GameState, StockType } from '../types';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+// Same-origin by default (production: the Worker serves both the app and
+// the API). Overridden in development via .env.development.
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

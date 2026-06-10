@@ -1,0 +1,16 @@
+{
+  "name": "stock-ticker-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker serving the Stock Ticker app: static frontend, REST API, and per-room Durable Objects for game state + WebSockets",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250601.0",
+    "typescript": "^5.8.0",
+    "wrangler": "^4.0.0"
+  }
+}
