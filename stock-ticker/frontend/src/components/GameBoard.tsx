@@ -25,7 +25,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
   useEffect(() => {
     loadGameState();
     setupWebSocket();
-    
+
     return () => {
       webSocketService.off('game-state-updated');
       webSocketService.off('dice-rolled');
@@ -197,9 +197,9 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
 
   return (
     <div className="page-gradient" style={{
-      display: 'flex', 
-      flexDirection: 'column', 
-      flexGrow: 1 
+      display: 'flex',
+      flexDirection: 'column',
+      flexGrow: 1
     }}>
       <div className="w-full px-4" style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Game Status Bar */}
@@ -220,7 +220,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
                 )}
               </div>
             </div>
-            
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               {currentPlayer && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -280,166 +280,147 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
           </div>
         </div>
 
-        {/* Main Game Layout: Player Info Left, Actions Right */}
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
+        {/* Main Game Layout: Actions + Other Players */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
           gap: '1rem',
           flexGrow: 1
         }}>
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'row',
+          {/* Single Unified Actions Card */}
+          <div className="card" style={{
+            display: 'flex',
+            flexDirection: 'column',
             gap: '1rem',
             flexGrow: 1
           }}>
-            {/* Left Column: Current Player Info */}
-            <div style={{ 
-              width: '50%', 
-              flexGrow: 1, 
-              flexShrink: 1,
-              display: 'flex',
-              flexDirection: 'column'
-            }}>
-              <div className="card" style={{ 
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1rem'
-              }}>
-                <h2 className="text-lg font-bold text-gray-900">👤 Your Info</h2>
-                {currentPlayer && (
-                  <div style={{ flexGrow: 1 }}>
-                    <PlayerPortfolio
-                      key={currentPlayer.playerId}
-                      portfolio={currentPlayer}
-                      playerName={playerName}
-                      isCurrentPlayer={true}
-                      isActivePlayer={currentPlayer.playerId === gameState.currentPlayerId}
-                      compact={false}
-                      noCard={true}
-                    />
+            <h2 className="text-lg font-bold text-gray-900">🎮 Actions</h2>
+
+            {/* Dice Rolling Section */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flexShrink: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 className="text-md font-semibold text-gray-900">🎲 Dice Roll</h3>
+                {lastDiceResult && !isRolling && (
+                  <div className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded" style={{ flexShrink: 0 }}>
+                    {lastDiceResult.resultStock.toUpperCase()} {lastDiceResult.resultAction.toUpperCase()} {lastDiceResult.resultAmount}¢
                   </div>
                 )}
               </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {(isRolling ? [1,1,1] : lastDiceResult ? [lastDiceResult.stockDie, lastDiceResult.actionDie, lastDiceResult.amountDie] : [1,1,1]).map((die, index) => (
+                    <div
+                      key={index}
+                      className={`w-10 h-10 bg-white border-2 border-gray-300 rounded-lg shadow-sm ${isRolling ? 'animate-bounce' : ''}`}
+                      style={{
+                        animationDelay: `${index * 0.1}s`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.25rem',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][die - 1]}
+                    </div>
+                  ))}
+                </div>
+
+                {isAutoMode ? (
+                  <div className="text-xs text-gray-600 bg-gray-100 px-3 py-2 rounded" style={{ flexShrink: 0 }}>
+                    ⚡ The market rolls itself every 5 seconds
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleRollDice}
+                    disabled={!canRoll || isRolling}
+                    className={`btn-primary px-6 py-2 text-sm font-semibold ${isRolling ? 'animate-pulse' : ''}`}
+                    style={{ flexShrink: 0 }}
+                  >
+                    {isRolling ? 'Rolling...' : 'Roll Dice'}
+                  </button>
+                )}
+              </div>
+
+              {!isAutoMode && !canRoll && !isRolling && (
+                <div className="text-xs text-gray-500" style={{ textAlign: 'center' }}>
+                  {gameState.phase !== GamePhase.ROLLING ? 'Game not in rolling phase' : 'Wait for your turn'}
+                </div>
+              )}
             </div>
 
-            {/* Right Column: Actions */}
-            <div style={{ 
-              width: '50%', 
-              flexGrow: 1, 
-              flexShrink: 1,
-              display: 'flex',
-              flexDirection: 'column'
-            }}>
-              {/* Single Unified Actions Card */}
-              <div className="card" style={{ 
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1rem'
-              }}>
-                <h2 className="text-lg font-bold text-gray-900">🎮 Actions</h2>
-                
-                {/* Dice Rolling Section */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flexShrink: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 className="text-md font-semibold text-gray-900">🎲 Dice Roll</h3>
-                    {lastDiceResult && !isRolling && (
-                      <div className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded" style={{ flexShrink: 0 }}>
-                        {lastDiceResult.resultStock.toUpperCase()} {lastDiceResult.resultAction.toUpperCase()} {lastDiceResult.resultAmount}¢
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      {(isRolling ? [1,1,1] : lastDiceResult ? [lastDiceResult.stockDie, lastDiceResult.actionDie, lastDiceResult.amountDie] : [1,1,1]).map((die, index) => (
-                        <div
-                          key={index}
-                          className={`w-10 h-10 bg-white border-2 border-gray-300 rounded-lg shadow-sm ${isRolling ? 'animate-bounce' : ''}`}
-                          style={{ 
-                            animationDelay: `${index * 0.1}s`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '1.25rem',
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          {['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][die - 1]}
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {isAutoMode ? (
-                      <div className="text-xs text-gray-600 bg-gray-100 px-3 py-2 rounded" style={{ flexShrink: 0 }}>
-                        ⚡ The market rolls itself every 5 seconds
-                      </div>
-                    ) : (
-                      <button
-                        onClick={handleRollDice}
-                        disabled={!canRoll || isRolling}
-                        className={`btn-primary px-6 py-2 text-sm font-semibold ${isRolling ? 'animate-pulse' : ''}`}
-                        style={{ flexShrink: 0 }}
-                      >
-                        {isRolling ? 'Rolling...' : 'Roll Dice'}
-                      </button>
-                    )}
-                  </div>
+            {/* Divider */}
+            <div className="border-t border-gray-200" style={{ flexShrink: 0 }}></div>
 
-                  {!isAutoMode && !canRoll && !isRolling && (
-                    <div className="text-xs text-gray-500" style={{ textAlign: 'center' }}>
-                      {gameState.phase !== GamePhase.ROLLING ? 'Game not in rolling phase' : 'Wait for your turn'}
-                    </div>
-                  )}
+            {/* Trading Section — always visible, buttons enabled only during your trading phase */}
+            <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 className="text-md font-semibold text-gray-900">💰 Trading</h3>
+                {!canTrade && !isAutoMode && (
+                  <div className="text-xs text-gray-500" style={{ flexShrink: 0 }}>
+                    {isMyTurn ? 'Roll the dice to start trading' : 'Wait for your turn to trade'}
+                  </div>
+                )}
+              </div>
+
+              {/* Cash / Total Value */}
+              {currentPlayer && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', flexShrink: 0 }}>
+                  <div style={{ border: '1px solid var(--st-gray-200)', borderRadius: '0.5rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.5rem', textAlign: 'center' }}>
+                    <div className="text-lg font-bold text-gray-900">{formatCurrency(currentPlayer.cash)}</div>
+                    <div className="text-sm text-gray-600">Cash</div>
+                  </div>
+                  <div style={{ border: '1px solid var(--st-gray-200)', borderRadius: '0.5rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.5rem', textAlign: 'center' }}>
+                    <div className="text-lg font-bold text-gray-900">{formatCurrency(currentPlayer.totalValue)}</div>
+                    <div className="text-sm text-gray-600">Total Value</div>
+                  </div>
                 </div>
+              )}
 
-                {/* Divider */}
-                <div className="border-t border-gray-200" style={{ flexShrink: 0 }}></div>
+              <div style={{ flexGrow: 1, overflow: 'auto' }}>
+                <TradingPanel
+                  stocks={gameState.stocks}
+                  playerCash={currentPlayer?.cash || 0}
+                  playerStocks={currentPlayer?.stocks || ({} as Record<StockType, number>)}
+                  canTrade={canTrade}
+                  onTrade={handleTrade}
+                />
+              </div>
 
-                {/* Trading Section — always visible, buttons enabled only during your trading phase */}
-                <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 className="text-md font-semibold text-gray-900">💰 Trading</h3>
-                    {!canTrade && !isAutoMode && (
-                      <div className="text-xs text-gray-500" style={{ flexShrink: 0 }}>
-                        {isMyTurn ? 'Roll the dice to start trading' : 'Wait for your turn to trade'}
-                      </div>
-                    )}
+              {/* Portfolio Value / Net Worth */}
+              {currentPlayer && (
+                <div style={{ borderTop: '1px solid var(--st-gray-200)', paddingTop: '0.5rem', flexShrink: 0 }}>
+                  <div className="text-sm" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span className="text-gray-600">Portfolio Value:</span>
+                    <span className="font-medium">{formatCurrency(currentPlayer.totalValue - currentPlayer.cash)}</span>
                   </div>
-
-                  <div style={{ flexGrow: 1, overflow: 'auto' }}>
-                    <TradingPanel
-                      stocks={gameState.stocks}
-                      playerCash={currentPlayer?.cash || 0}
-                      playerStocks={currentPlayer?.stocks || ({} as Record<StockType, number>)}
-                      canTrade={canTrade}
-                      onTrade={handleTrade}
-                    />
+                  <div className="text-sm" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.25rem' }}>
+                    <span className="text-gray-600">Net Worth:</span>
+                    <span className="font-bold text-lg">{formatCurrency(currentPlayer.totalValue)}</span>
                   </div>
-
-                  {canTrade && !isAutoMode && (
-                    <button
-                      onClick={handleEndTurn}
-                      className="w-full btn-success text-sm"
-                      style={{ flexShrink: 0 }}
-                    >
-                      ⏭️ End Turn
-                    </button>
-                  )}
                 </div>
+              )}
+
+              {canTrade && !isAutoMode && (
+                <button
+                  onClick={handleEndTurn}
+                  className="w-full btn-success text-sm"
+                  style={{ flexShrink: 0 }}
+                >
+                  ⏭️ End Turn
+                </button>
+              )}
             </div>
           </div>
-        </div>
 
           {/* Other Players - Full Width Below */}
           {gameState.players.filter(p => p.playerId !== playerId).length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flexShrink: 0 }}>
               <h2 className="text-lg font-bold text-gray-900">👥 Other Players</h2>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
                 gap: '0.75rem'
               }}>
                 {gameState.players
