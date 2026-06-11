@@ -1,6 +1,6 @@
 import { GameRoom } from './gameRoom';
 import { GameLogic } from './gameLogic';
-import { StockType, GameMode } from './types';
+import { StockType, GameMode, RoomSettings, DEFAULT_SETTINGS } from './types';
 
 export { GameRoom };
 
@@ -48,6 +48,57 @@ function mapError(
   return apiError(500, 'INTERNAL_ERROR', fallbackMessage);
 }
 
+/**
+ * Validate and normalize room settings from the create-room body. The UI
+ * offers presets; the server only enforces sane ranges.
+ */
+function parseSettings(input: any): { settings: RoomSettings } | { error: string } {
+  const settings = { ...DEFAULT_SETTINGS };
+  if (input === undefined || input === null) {
+    return { settings };
+  }
+  if (typeof input !== 'object') {
+    return { error: 'settings must be an object' };
+  }
+
+  if (input.rollIntervalMs !== undefined) {
+    if (!Number.isInteger(input.rollIntervalMs) || input.rollIntervalMs < 1000 || input.rollIntervalMs > 60000) {
+      return { error: 'rollIntervalMs must be an integer between 1000 and 60000' };
+    }
+    settings.rollIntervalMs = input.rollIntervalMs;
+  }
+
+  if (input.startingCash !== undefined) {
+    if (!Number.isInteger(input.startingCash) || input.startingCash < 100 || input.startingCash > 10_000_000) {
+      return { error: 'startingCash must be an integer between 100 and 10000000 cents' };
+    }
+    settings.startingCash = input.startingCash;
+  }
+
+  if (input.endType !== undefined) {
+    const bounds: Record<string, [number, number]> = {
+      time: [1, 180],            // minutes
+      networth: [100, 100_000_000], // cents
+      rolls: [1, 10_000]
+    };
+    if (input.endType === 'none') {
+      settings.endType = 'none';
+      settings.endValue = 0;
+    } else if (bounds[input.endType]) {
+      const [min, max] = bounds[input.endType];
+      if (!Number.isInteger(input.endValue) || input.endValue < min || input.endValue > max) {
+        return { error: `endValue for ${input.endType} must be an integer between ${min} and ${max}` };
+      }
+      settings.endType = input.endType;
+      settings.endValue = input.endValue;
+    } else {
+      return { error: 'endType must be one of: none, time, networth, rolls' };
+    }
+  }
+
+  return { settings };
+}
+
 function roomStub(env: Env, roomId: string) {
   // Room identity is the invite code, so any holder of the code reaches
   // the same Durable Object via idFromName.
@@ -80,7 +131,7 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
   if (resource === 'rooms') {
     // POST /api/rooms
     if (method === 'POST' && segments.length === 2) {
-      const { name, mode } = await readBody(request);
+      const { name, mode, settings } = await readBody(request);
       if (!name || typeof name !== 'string') {
         return apiError(400, 'INVALID_INPUT', 'Room name is required');
       }
@@ -88,13 +139,17 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
         return apiError(400, 'INVALID_INPUT', 'Invalid game mode');
       }
       const gameMode = (mode as GameMode) ?? GameMode.CLASSIC;
+      const parsed = parseSettings(settings);
+      if ('error' in parsed) {
+        return apiError(400, 'INVALID_INPUT', parsed.error);
+      }
       // Invite codes are random, so collisions with an existing room are
       // vanishingly rare — but retry a few times just in case.
       for (let attempt = 0; attempt < 5; attempt++) {
         const inviteCode = GameLogic.generateInviteCode();
         try {
-          const room = await roomStub(env, inviteCode).createRoom(name, inviteCode, gameMode);
-          return json({ success: true, data: { roomId: room.roomId, inviteCode: room.inviteCode, name, mode: room.mode } }, 201);
+          const room = await roomStub(env, inviteCode).createRoom(name, inviteCode, gameMode, parsed.settings);
+          return json({ success: true, data: { roomId: room.roomId, inviteCode: room.inviteCode, name, mode: room.mode, settings: parsed.settings } }, 201);
         } catch (error) {
           if (error instanceof Error && error.message.includes('Room already exists')) {
             continue;
@@ -186,9 +241,12 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
       try {
         const result = await stub.rollDice(playerId);
         await stub.broadcastGameState();
+        await stub.maybeEndGameAfterRoll();
         return json({ success: true, data: result });
       } catch (error) {
-        return mapError(error, [], 'Failed to roll dice');
+        return mapError(error, [
+          { match: 'not in progress', status: 400, code: 'GAME_NOT_ACTIVE' }
+        ], 'Failed to roll dice');
       }
     }
 
@@ -216,7 +274,8 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
         return mapError(error, [
           { match: 'Invalid share amount', status: 400, code: 'INVALID_TRANSACTION' },
           { match: 'Insufficient funds', status: 400, code: 'INVALID_TRANSACTION' },
-          { match: 'Cannot sell', status: 400, code: 'INVALID_TRANSACTION' }
+          { match: 'Cannot sell', status: 400, code: 'INVALID_TRANSACTION' },
+          { match: 'not in progress', status: 400, code: 'GAME_NOT_ACTIVE' }
         ], `Failed to ${action === 'buy-stock' ? 'buy' : 'sell'} stock`);
       }
     }

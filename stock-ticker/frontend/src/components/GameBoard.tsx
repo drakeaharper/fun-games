@@ -20,6 +20,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
   const [lastDiceResult, setLastDiceResult] = useState<DiceResult | null>(null);
   const [isRolling, setIsRolling] = useState(false);
   const [notifications, setNotifications] = useState<string[]>([]);
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
     loadGameState();
@@ -31,9 +32,19 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
       webSocketService.off('stock-transaction');
       webSocketService.off('turn-ended');
       webSocketService.off('turn-changed');
+      webSocketService.off('game-over');
       webSocketService.off('error');
     };
   }, []);
+
+  // Tick the countdown once a second while a timed game is running.
+  useEffect(() => {
+    if (!gameState?.endsAt || gameState.phase === GamePhase.GAME_OVER) {
+      return;
+    }
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [gameState?.endsAt, gameState?.phase]);
 
   const loadGameState = async () => {
     try {
@@ -98,6 +109,17 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
       if (data.currentPlayerId === playerId) {
         addNotification("🎯 It's your turn!");
       }
+    });
+
+    webSocketService.on('game-over', (data) => {
+      const winners = data.standings.filter(s => data.winnerIds.includes(s.playerId));
+      const names = winners.map(w => w.playerName).join(' & ');
+      const reasonText = {
+        time: "Time's up",
+        networth: 'Target reached',
+        rolls: 'Roll limit reached'
+      }[data.reason];
+      addNotification(`🏁 ${reasonText}! ${names} win${winners.length === 1 ? 's' : ''} with ${formatCurrency(winners[0]?.totalValue || 0)}`);
     });
 
     webSocketService.on('error', (error) => {
@@ -190,9 +212,30 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
 
   const currentPlayer = gameState.players.find(p => p.playerId === playerId);
   const isAutoMode = gameState.mode === GameMode.AUTO;
+  const isGameOver = gameState.phase === GamePhase.GAME_OVER;
   const isMyTurn = gameState.currentPlayerId === playerId;
   const canRoll = !isAutoMode && isMyTurn && gameState.phase === GamePhase.ROLLING;
   const canTrade = (isAutoMode || isMyTurn) && gameState.phase === GamePhase.TRADING;
+
+  const settings = gameState.settings;
+  const formatCountdown = (ms: number) => {
+    const total = Math.max(0, Math.ceil(ms / 1000));
+    const minutes = Math.floor(total / 60);
+    const seconds = total % 60;
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  };
+  const endConditionChip = !isGameOver && settings && settings.endType !== 'none'
+    ? settings.endType === 'time' && gameState.endsAt
+      ? `⏱ ${formatCountdown(gameState.endsAt - now)}`
+      : settings.endType === 'networth'
+        ? `🏆 First to ${formatCurrency(settings.endValue)}`
+        : settings.endType === 'rolls'
+          ? `🎲 Roll ${gameState.rollCount ?? 0}/${settings.endValue}`
+          : null
+    : null;
+
+  const standings = [...gameState.players].sort((a, b) => b.totalValue - a.totalValue);
+  const topValue = standings[0]?.totalValue ?? 0;
 
   return (
     <div className="page-gradient" style={{
@@ -206,7 +249,9 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div>
-                {isAutoMode ? (
+                {isGameOver ? (
+                  <span className="text-sm font-medium text-blue-600">🏁 GAME OVER</span>
+                ) : isAutoMode ? (
                   <span className="text-sm font-medium text-blue-600">⚡ AUTO-ROLL</span>
                 ) : (
                   <>
@@ -218,6 +263,9 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
                   </>
                 )}
               </div>
+              {endConditionChip && (
+                <div className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">{endConditionChip}</div>
+              )}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -243,7 +291,48 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
           gap: '1rem',
           flexGrow: 1
         }}>
-          {/* Single Unified Actions Card */}
+          {/* Final standings replace the Actions card once the game ends */}
+          {isGameOver ? (
+          <div className="card" style={{ flexGrow: 1 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h2 className="text-lg font-bold text-gray-900">🏁 Final Standings</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {standings.map((p, index) => {
+                  const isWinner = p.totalValue === topValue;
+                  return (
+                    <div
+                      key={p.playerId}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '0.5rem',
+                        border: isWinner ? '2px solid var(--st-gold)' : '1px solid var(--st-gray-200)',
+                        background: isWinner
+                          ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
+                          : 'rgba(255, 255, 255, 0.5)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ fontSize: '1.25rem' }}>{['🥇', '🥈', '🥉'][index] || `${index + 1}.`}</span>
+                        <span className="font-medium text-gray-900">
+                          {p.playerName}
+                          {p.playerId === playerId && <span className="text-blue-600"> (You)</span>}
+                        </span>
+                      </div>
+                      <span className="font-bold text-gray-900">{formatCurrency(p.totalValue)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <button onClick={onLeaveGame} className="w-full btn-primary">
+                Leave Game
+              </button>
+            </div>
+          </div>
+          ) : (
+          /* Single unified Actions card */
           <div className="card" style={{
             display: 'flex',
             flexDirection: 'column',
@@ -285,7 +374,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
 
                 {isAutoMode ? (
                   <div className="text-xs text-gray-600 bg-gray-100 px-3 py-2 rounded" style={{ flexShrink: 0 }}>
-                    ⚡ The market rolls itself every 5 seconds
+                    ⚡ The market rolls itself every {(settings?.rollIntervalMs ?? 5000) / 1000} seconds
                   </div>
                 ) : (
                   <button
@@ -369,6 +458,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
               )}
             </div>
           </div>
+          )}
 
           {/* Game Log — last 10 events, newest on top */}
           {notifications.length > 0 && (

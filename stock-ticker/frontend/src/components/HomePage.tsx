@@ -1,12 +1,88 @@
 import React, { useState } from 'react';
 import { APIService } from '../services/api';
-import { GameMode } from '../types';
+import { GameMode, EndConditionType } from '../types';
 import { validatePlayerName, validateRoomName, validateInviteCode } from '../utils';
 
 const GAME_MODE_OPTIONS = [
   { mode: GameMode.CLASSIC, icon: '🎲', title: 'Classic', description: 'Take turns rolling the dice' },
-  { mode: GameMode.AUTO, icon: '⚡', title: 'Auto-Roll', description: 'Dice roll every 5 seconds — trade anytime' }
+  { mode: GameMode.AUTO, icon: '⚡', title: 'Auto-Roll', description: 'Dice roll on a timer — trade anytime' }
 ];
+
+const CASH_OPTIONS = [
+  { label: '$2,500', value: 250000 },
+  { label: '$5,000', value: 500000 },
+  { label: '$10,000', value: 1000000 }
+];
+
+const SPEED_OPTIONS = [
+  { label: '3s', value: 3000 },
+  { label: '5s', value: 5000 },
+  { label: '10s', value: 10000 }
+];
+
+const END_TYPE_OPTIONS: Array<{ label: string; value: EndConditionType }> = [
+  { label: 'Endless', value: 'none' },
+  { label: 'Timed', value: 'time' },
+  { label: 'Target $', value: 'networth' },
+  { label: 'Roll limit', value: 'rolls' }
+];
+
+const END_VALUE_OPTIONS: Record<Exclude<EndConditionType, 'none'>, Array<{ label: string; value: number }>> = {
+  time: [
+    { label: '10 min', value: 10 },
+    { label: '20 min', value: 20 },
+    { label: '30 min', value: 30 }
+  ],
+  networth: [
+    { label: '$10,000', value: 1000000 },
+    { label: '$25,000', value: 2500000 },
+    { label: '$50,000', value: 5000000 }
+  ],
+  rolls: [
+    { label: '30', value: 30 },
+    { label: '60', value: 60 },
+    { label: '100', value: 100 }
+  ]
+};
+
+const END_VALUE_DEFAULTS: Record<Exclude<EndConditionType, 'none'>, number> = {
+  time: 20,
+  networth: 2500000,
+  rolls: 60
+};
+
+const END_VALUE_LABELS: Record<Exclude<EndConditionType, 'none'>, string> = {
+  time: 'Duration',
+  networth: 'Target',
+  rolls: 'Rolls'
+};
+
+interface SettingRowProps {
+  label: string;
+  options: Array<{ label: string; value: number | string }>;
+  value: number | string;
+  onSelect: (value: any) => void;
+  disabled: boolean;
+}
+
+const SettingRow: React.FC<SettingRowProps> = ({ label, options, value, onSelect, disabled }) => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+    <span className="text-sm font-bold" style={{ color: 'var(--st-gray-700)' }}>{label}</span>
+    <div className="lot-selector">
+      {options.map((option) => (
+        <button
+          type="button"
+          key={String(option.value)}
+          className={`lot-btn ${value === option.value ? 'active' : ''}`}
+          onClick={() => onSelect(option.value)}
+          disabled={disabled}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  </div>
+);
 
 interface HomePageProps {
   onRoomJoined: (roomId: string, playerId: string, playerName: string, inviteCode: string) => void;
@@ -21,6 +97,15 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
   const [roomName, setRoomName] = useState('');
   const [creatorName, setCreatorName] = useState('');
   const [gameMode, setGameMode] = useState<GameMode>(GameMode.CLASSIC);
+  const [startingCash, setStartingCash] = useState(500000);
+  const [rollInterval, setRollInterval] = useState(5000);
+  const [endType, setEndType] = useState<EndConditionType>('none');
+  const [endValue, setEndValue] = useState(0);
+
+  const handleEndTypeSelect = (type: EndConditionType) => {
+    setEndType(type);
+    setEndValue(type === 'none' ? 0 : END_VALUE_DEFAULTS[type]);
+  };
 
   // Join room state
   const [inviteCode, setInviteCode] = useState('');
@@ -47,7 +132,12 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
 
     try {
       // Create room
-      const roomResponse = await APIService.createRoom(roomName, gameMode);
+      const roomResponse = await APIService.createRoom(roomName, gameMode, {
+        rollIntervalMs: rollInterval,
+        startingCash,
+        endType,
+        endValue
+      });
       if (!roomResponse.success) {
         throw new Error(roomResponse.error?.message || 'Failed to create room');
       }
@@ -366,6 +456,54 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
                     <div style={{ fontSize: '0.75rem', color: 'var(--st-gray-600)' }}>{option.description}</div>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)' }}>
+                ⚙️ Game Settings
+              </label>
+              <div style={{
+                border: '1px solid var(--st-gray-300)',
+                borderRadius: '0.75rem',
+                padding: '0.75rem 1rem',
+                background: 'rgba(255, 255, 255, 0.5)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem'
+              }}>
+                <SettingRow
+                  label="Starting Cash"
+                  options={CASH_OPTIONS}
+                  value={startingCash}
+                  onSelect={setStartingCash}
+                  disabled={isLoading}
+                />
+                {gameMode === GameMode.AUTO && (
+                  <SettingRow
+                    label="Roll Speed"
+                    options={SPEED_OPTIONS}
+                    value={rollInterval}
+                    onSelect={setRollInterval}
+                    disabled={isLoading}
+                  />
+                )}
+                <SettingRow
+                  label="Game End"
+                  options={END_TYPE_OPTIONS}
+                  value={endType}
+                  onSelect={handleEndTypeSelect}
+                  disabled={isLoading}
+                />
+                {endType !== 'none' && (
+                  <SettingRow
+                    label={END_VALUE_LABELS[endType]}
+                    options={END_VALUE_OPTIONS[endType]}
+                    value={endValue}
+                    onSelect={setEndValue}
+                    disabled={isLoading}
+                  />
+                )}
               </div>
             </div>
 

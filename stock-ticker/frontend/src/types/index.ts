@@ -48,9 +48,24 @@ export interface PlayerPortfolio {
   totalValue: number; // in cents
 }
 
+export type EndConditionType = 'none' | 'time' | 'networth' | 'rolls';
+
+export interface RoomSettings {
+  /** Auto mode: time between market rolls, in ms */
+  rollIntervalMs: number;
+  /** Each player's starting cash, in cents */
+  startingCash: number;
+  endType: EndConditionType;
+  /** Meaning depends on endType: minutes | cents of net worth | roll count */
+  endValue: number;
+}
+
 export interface GameState {
   roomId: string;
   mode?: GameMode;
+  settings?: RoomSettings;
+  endsAt?: number | null;
+  rollCount?: number;
   currentTurn: number;
   currentPlayerId: string | null;
   phase: GamePhase;
@@ -95,6 +110,11 @@ export interface WebSocketEvents {
   'player-disconnected': (data: { playerId: string; playerName: string; message: string }) => void;
   'turn-ended': (data: { playerId: string; playerName: string; message: string }) => void;
   'turn-changed': (data: { currentPlayerId: string }) => void;
+  'game-over': (data: {
+    reason: 'time' | 'networth' | 'rolls';
+    standings: Array<{ playerId: string; playerName: string; totalValue: number; cash: number }>;
+    winnerIds: string[];
+  }) => void;
   'error': (error: { code: string; message: string; details?: string }) => void;
 }
 

@@ -61,9 +61,27 @@ export interface PlayerPortfolio {
   totalValue: number;
 }
 
+export type EndConditionType = 'none' | 'time' | 'networth' | 'rolls';
+
+export interface RoomSettings {
+  /** Auto mode: time between market rolls, in ms */
+  rollIntervalMs: number;
+  /** Each player's starting cash, in cents */
+  startingCash: number;
+  /** How the game ends */
+  endType: EndConditionType;
+  /** Meaning depends on endType: minutes | cents of net worth | roll count */
+  endValue: number;
+}
+
 export interface GameStateData {
   roomId: string;
   mode: GameMode;
+  settings: RoomSettings;
+  /** Wall-clock ms when a timed game ends, null otherwise */
+  endsAt: number | null;
+  /** Total dice rolls so far (drives the roll-count end condition) */
+  rollCount: number;
   currentTurn: number;
   currentPlayerId: string | null;
   phase: GamePhase;
@@ -79,6 +97,13 @@ export const STOCK_RESET_PRICE = 0; // $0.00 in cents
 export const SHARE_LOTS = [500, 1000, 2000, 5000];
 export const MAX_PLAYERS = 6;
 export const AUTO_ROLL_INTERVAL_MS = 5000;
+
+export const DEFAULT_SETTINGS: RoomSettings = {
+  rollIntervalMs: AUTO_ROLL_INTERVAL_MS,
+  startingCash: STARTING_CASH,
+  endType: 'none',
+  endValue: 0
+};
 
 // Dice mappings based on original game rules
 export const STOCK_DIE_MAPPING: Record<number, StockType> = {

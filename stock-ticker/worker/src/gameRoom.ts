@@ -5,15 +5,15 @@ import {
   GamePhase,
   GameMode,
   RoomStatus,
+  RoomSettings,
   TransactionAction,
   GameStateData,
   PlayerPortfolio,
   StockPrice,
   DiceResult,
-  STARTING_CASH,
   STARTING_PRICE,
   MAX_PLAYERS,
-  AUTO_ROLL_INTERVAL_MS
+  DEFAULT_SETTINGS
 } from './types';
 import type { Env } from './index';
 
@@ -44,7 +44,8 @@ export class GameRoom extends DurableObject<Env> {
         invite_code TEXT NOT NULL,
         status TEXT NOT NULL,
         max_players INTEGER NOT NULL DEFAULT ${MAX_PLAYERS},
-        mode TEXT NOT NULL DEFAULT '${GameMode.CLASSIC}'
+        mode TEXT NOT NULL DEFAULT '${GameMode.CLASSIC}',
+        settings TEXT NOT NULL DEFAULT '{}'
       );
       CREATE TABLE IF NOT EXISTS players (
         id TEXT PRIMARY KEY,
@@ -67,7 +68,8 @@ export class GameRoom extends DurableObject<Env> {
         id INTEGER PRIMARY KEY CHECK (id = 1),
         current_turn INTEGER NOT NULL DEFAULT 0,
         current_player_id TEXT,
-        phase TEXT NOT NULL
+        phase TEXT NOT NULL,
+        ends_at INTEGER
       );
       CREATE TABLE IF NOT EXISTS dice_rolls (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,11 +94,17 @@ export class GameRoom extends DurableObject<Env> {
       );
     `);
 
-    // Rooms created before game modes existed lack the mode column.
-    try {
-      this.sql.exec(`ALTER TABLE room ADD COLUMN mode TEXT NOT NULL DEFAULT '${GameMode.CLASSIC}'`);
-    } catch {
-      // Column already exists.
+    // Migrations for rooms created before these columns existed.
+    for (const migration of [
+      `ALTER TABLE room ADD COLUMN mode TEXT NOT NULL DEFAULT '${GameMode.CLASSIC}'`,
+      `ALTER TABLE room ADD COLUMN settings TEXT NOT NULL DEFAULT '{}'`,
+      `ALTER TABLE game_state ADD COLUMN ends_at INTEGER`
+    ]) {
+      try {
+        this.sql.exec(migration);
+      } catch {
+        // Column already exists.
+      }
     }
   }
 
@@ -107,7 +115,8 @@ export class GameRoom extends DurableObject<Env> {
   async createRoom(
     name: string,
     inviteCode: string,
-    mode: GameMode = GameMode.CLASSIC
+    mode: GameMode = GameMode.CLASSIC,
+    settings: RoomSettings = DEFAULT_SETTINGS
   ): Promise<{ roomId: string; inviteCode: string; mode: GameMode }> {
     const existing = this.sql.exec('SELECT id FROM room').toArray();
     if (existing.length > 0) {
@@ -115,8 +124,8 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     this.sql.exec(
-      'INSERT INTO room (id, name, invite_code, status, mode) VALUES (1, ?, ?, ?, ?)',
-      name, inviteCode, RoomStatus.WAITING, mode
+      'INSERT INTO room (id, name, invite_code, status, mode, settings) VALUES (1, ?, ?, ?, ?, ?)',
+      name, inviteCode, RoomStatus.WAITING, mode, JSON.stringify(settings)
     );
 
     for (const stock of GameLogic.initializeStocks()) {
@@ -168,7 +177,7 @@ export class GameRoom extends DurableObject<Env> {
     const playerId = crypto.randomUUID();
     this.sql.exec(
       'INSERT INTO players (id, name, turn_order, cash, connected) VALUES (?, ?, ?, ?, 0)',
-      playerId, playerName, players.length, STARTING_CASH
+      playerId, playerName, players.length, this.getSettings(room).startingCash
     );
 
     for (const stockType of Object.values(StockType)) {
@@ -210,32 +219,66 @@ export class GameRoom extends DurableObject<Env> {
 
     this.sql.exec('UPDATE room SET status = ? WHERE id = 1', RoomStatus.PLAYING);
 
+    const settings = this.getSettings(room);
+    let endsAt: number | null = null;
+    if (settings.endType === 'time') {
+      endsAt = Date.now() + settings.endValue * 60_000;
+      this.sql.exec('UPDATE game_state SET ends_at = ? WHERE id = 1', endsAt);
+    }
+
     if (this.getMode(room) === GameMode.AUTO) {
       // No turns in auto mode: everyone trades whenever they like and the
       // market rolls itself on a timer via the DO alarm.
       this.sql.exec('UPDATE game_state SET phase = ? WHERE id = 1', GamePhase.TRADING);
-      await this.ctx.storage.setAlarm(Date.now() + AUTO_ROLL_INTERVAL_MS);
+      await this.ctx.storage.setAlarm(this.nextAlarmTime(settings, endsAt));
     } else {
       this.sql.exec(
         'UPDATE game_state SET phase = ?, current_player_id = ? WHERE id = 1',
         GamePhase.ROLLING, players[0].id as string
       );
+      // Classic games only need the alarm to call time.
+      if (endsAt !== null) {
+        await this.ctx.storage.setAlarm(endsAt);
+      }
     }
 
     this.broadcast('game-state-updated', this.buildGameState());
   }
 
+  /** When the alarm should next fire: the next market roll, or the final bell if sooner. */
+  private nextAlarmTime(settings: RoomSettings, endsAt: number | null): number {
+    const next = Date.now() + settings.rollIntervalMs;
+    return endsAt !== null ? Math.min(next, endsAt) : next;
+  }
+
   /**
-   * Auto-roll heartbeat. While an auto-mode game is in progress and at least
-   * one player is connected, roll the dice and re-arm the alarm. When the
-   * room empties the alarm is simply not re-armed (pausing the market);
-   * handleJoin re-arms it when someone comes back.
+   * DO alarm: calls time on timed games (both modes) and drives the market
+   * in auto mode. While an auto room is empty the alarm is not re-armed
+   * (pausing the market); handleJoin re-arms it when someone comes back.
+   * The clock on a timed game keeps running regardless.
    */
   async alarm(): Promise<void> {
     const room = this.getRoomRow();
-    if (!room || room.status !== RoomStatus.PLAYING || this.getMode(room) !== GameMode.AUTO) {
+    if (!room || room.status !== RoomStatus.PLAYING) {
       return;
     }
+
+    const settings = this.getSettings(room);
+    const endsAt = this.getEndsAt();
+
+    if (endsAt !== null && Date.now() >= endsAt) {
+      await this.endGame('time');
+      return;
+    }
+
+    if (this.getMode(room) !== GameMode.AUTO) {
+      // Classic timed game woken early (e.g. after a migration): re-arm for the bell.
+      if (endsAt !== null) {
+        await this.ctx.storage.setAlarm(endsAt);
+      }
+      return;
+    }
+
     if (this.ctx.getWebSockets().length === 0) {
       return;
     }
@@ -253,7 +296,72 @@ export class GameRoom extends DurableObject<Env> {
     });
     this.broadcast('game-state-updated', this.buildGameState());
 
-    await this.ctx.storage.setAlarm(Date.now() + AUTO_ROLL_INTERVAL_MS);
+    const ended = await this.maybeEndGameAfterRoll();
+    if (!ended) {
+      await this.ctx.storage.setAlarm(this.nextAlarmTime(settings, endsAt));
+    }
+  }
+
+  /**
+   * Check the net-worth and roll-count end conditions (time is handled by
+   * the alarm). Returns true if the game just ended.
+   */
+  async maybeEndGameAfterRoll(): Promise<boolean> {
+    const room = this.getRoomRow();
+    if (!room || room.status !== RoomStatus.PLAYING) {
+      return true;
+    }
+
+    const settings = this.getSettings(room);
+    if (settings.endType === 'networth') {
+      const reached = this.buildGameState().players.some(p => p.totalValue >= settings.endValue);
+      if (reached) {
+        await this.endGame('networth');
+        return true;
+      }
+    } else if (settings.endType === 'rolls') {
+      if (this.getRollCount() >= settings.endValue) {
+        await this.endGame('rolls');
+        return true;
+      }
+    }
+
+    const endsAt = this.getEndsAt();
+    if (endsAt !== null && Date.now() >= endsAt) {
+      await this.endGame('time');
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Close the market: freeze all play, rank everyone by net worth (cash plus
+   * stocks at market value, per the 1937 rules), and announce the winners.
+   */
+  private async endGame(reason: 'time' | 'networth' | 'rolls'): Promise<void> {
+    this.sql.exec('UPDATE room SET status = ? WHERE id = 1', RoomStatus.FINISHED);
+    this.sql.exec(
+      'UPDATE game_state SET phase = ?, current_player_id = NULL WHERE id = 1',
+      GamePhase.GAME_OVER
+    );
+    await this.ctx.storage.deleteAlarm();
+
+    const state = this.buildGameState();
+    const standings = [...state.players].sort((a, b) => b.totalValue - a.totalValue);
+    const top = standings[0]?.totalValue ?? 0;
+    const winnerIds = standings.filter(p => p.totalValue === top).map(p => p.playerId);
+
+    this.broadcast('game-over', {
+      reason,
+      standings: standings.map(p => ({
+        playerId: p.playerId,
+        playerName: p.playerName,
+        totalValue: p.totalValue,
+        cash: p.cash
+      })),
+      winnerIds
+    });
+    this.broadcast('game-state-updated', state);
   }
 
   // ---------------------------------------------------------------------
@@ -317,6 +425,9 @@ export class GameRoom extends DurableObject<Env> {
     return {
       roomId: room.invite_code as string,
       mode: this.getMode(room),
+      settings: this.getSettings(room),
+      endsAt: (state.ends_at as number) ?? null,
+      rollCount: this.getRollCount(),
       currentTurn: state.current_turn as number,
       currentPlayerId: (state.current_player_id as string) ?? null,
       phase: state.phase as GamePhase,
@@ -337,6 +448,7 @@ export class GameRoom extends DurableObject<Env> {
     offBoard: boolean;
     forfeitures: Array<{ playerId: string; playerName: string; shares: number }>;
   }> {
+    this.ensureInProgress();
     if (this.getMode() === GameMode.AUTO) {
       throw new Error('The dice roll automatically in this game mode');
     }
@@ -473,6 +585,7 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   async buyStock(playerId: string, stockType: StockType, shares: number): Promise<void> {
+    this.ensureInProgress();
     const player = this.sql.exec('SELECT cash FROM players WHERE id = ?', playerId).toArray()[0];
     const stock = this.sql.exec(
       'SELECT current_price FROM stocks WHERE stock_type = ?', stockType
@@ -498,6 +611,7 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   async sellStock(playerId: string, stockType: StockType, shares: number): Promise<void> {
+    this.ensureInProgress();
     const portfolio = this.sql.exec(
       'SELECT shares FROM portfolios WHERE player_id = ? AND stock_type = ?',
       playerId, stockType
@@ -526,6 +640,7 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   async endTurn(): Promise<{ currentPlayerId: string }> {
+    this.ensureInProgress();
     if (this.getMode() === GameMode.AUTO) {
       throw new Error('There are no turns in this game mode');
     }
@@ -573,6 +688,32 @@ export class GameRoom extends DurableObject<Env> {
 
   private getMode(room = this.getRoomRow()): GameMode {
     return ((room?.mode as GameMode) ?? GameMode.CLASSIC);
+  }
+
+  private getSettings(room = this.getRoomRow()): RoomSettings {
+    try {
+      return { ...DEFAULT_SETTINGS, ...JSON.parse((room?.settings as string) || '{}') };
+    } catch {
+      return { ...DEFAULT_SETTINGS };
+    }
+  }
+
+  private getEndsAt(): number | null {
+    const state = this.sql.exec('SELECT ends_at FROM game_state WHERE id = 1').toArray()[0];
+    return (state?.ends_at as number) ?? null;
+  }
+
+  private getRollCount(): number {
+    const row = this.sql.exec('SELECT COUNT(*) AS count FROM dice_rolls').toArray()[0];
+    return (row?.count as number) ?? 0;
+  }
+
+  /** Throw unless the game is underway (blocks play in the lobby and after the bell). */
+  private ensureInProgress(): void {
+    const room = this.getRoomRow();
+    if (!room || room.status !== RoomStatus.PLAYING) {
+      throw new Error('Game is not in progress');
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -671,7 +812,7 @@ export class GameRoom extends DurableObject<Env> {
     if (room && room.status === RoomStatus.PLAYING && this.getMode(room) === GameMode.AUTO) {
       const pending = await this.ctx.storage.getAlarm();
       if (pending === null) {
-        await this.ctx.storage.setAlarm(Date.now() + AUTO_ROLL_INTERVAL_MS);
+        await this.ctx.storage.setAlarm(this.nextAlarmTime(this.getSettings(room), this.getEndsAt()));
       }
     }
 
@@ -706,6 +847,7 @@ export class GameRoom extends DurableObject<Env> {
       forfeitures: result.forfeitures
     });
     this.broadcast('game-state-updated', this.buildGameState());
+    await this.maybeEndGameAfterRoll();
   }
 
   private async handleTrade(

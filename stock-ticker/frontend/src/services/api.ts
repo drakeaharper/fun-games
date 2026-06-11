@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { APIResponse, GameMode, GameState } from '../types';
+import { APIResponse, GameMode, GameState, RoomSettings } from '../types';
 
 // Same-origin by default (production: the Worker serves both the app and
 // the API). Overridden in development via .env.development.
@@ -31,8 +31,12 @@ export class APIService {
   /**
    * Create a new game room
    */
-  static async createRoom(name: string, mode: GameMode = GameMode.CLASSIC): Promise<APIResponse<{ roomId: string; inviteCode: string; name: string; mode: GameMode }>> {
-    const response = await api.post('/rooms', { name, mode });
+  static async createRoom(
+    name: string,
+    mode: GameMode = GameMode.CLASSIC,
+    settings?: Partial<RoomSettings>
+  ): Promise<APIResponse<{ roomId: string; inviteCode: string; name: string; mode: GameMode; settings: RoomSettings }>> {
+    const response = await api.post('/rooms', { name, mode, settings });
     return response.data;
   }
 
