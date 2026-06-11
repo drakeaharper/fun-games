@@ -58,20 +58,6 @@ export interface GameState {
   stocks: StockPrice[];
 }
 
-export interface Room {
-  id: string;
-  name: string;
-  inviteCode: string;
-  maxPlayers: number;
-  status: string;
-}
-
-export interface Player {
-  id: string;
-  name: string;
-  connected: boolean;
-}
-
 export interface APIResponse<T> {
   success: boolean;
   data?: T;
@@ -112,25 +98,7 @@ export interface WebSocketEvents {
   'error': (error: { code: string; message: string; details?: string }) => void;
 }
 
-// UI State
-export interface UIState {
-  isLoading: boolean;
-  selectedStock?: StockType;
-  isRolling: boolean;
-  connectionStatus: 'connected' | 'disconnected' | 'reconnecting';
-  notifications: Notification[];
-}
-
-export interface Notification {
-  id: string;
-  type: 'success' | 'error' | 'info' | 'warning';
-  message: string;
-  timestamp: number;
-  autoClose?: boolean;
-}
-
 // Constants
-export const STOCK_TYPES = Object.values(StockType);
 export const SHARE_LOTS = [500, 1000, 2000, 5000];
 
 export const STOCK_NAMES: Record<StockType, string> = {
@@ -140,13 +108,4 @@ export const STOCK_NAMES: Record<StockType, string> = {
   [StockType.OIL]: 'Oil',
   [StockType.INDUSTRIALS]: 'Industrials',
   [StockType.GRAIN]: 'Grain'
-};
-
-export const STOCK_COLORS: Record<StockType, string> = {
-  [StockType.GOLD]: '#fbbf24',
-  [StockType.SILVER]: '#e5e7eb',
-  [StockType.BONDS]: '#3b82f6',
-  [StockType.OIL]: '#374151',
-  [StockType.INDUSTRIALS]: '#6366f1',
-  [StockType.GRAIN]: '#f59e0b'
 };

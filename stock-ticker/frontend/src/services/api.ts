@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { APIResponse, GameMode, GameState, StockType } from '../types';
+import { APIResponse, GameMode, GameState } from '../types';
 
 // Same-origin by default (production: the Worker serves both the app and
 // the API). Overridden in development via .env.development.
@@ -45,14 +45,6 @@ export class APIService {
   }
 
   /**
-   * Get room info
-   */
-  static async getRoomInfo(roomId: string): Promise<APIResponse<{ id: string; name: string; inviteCode: string; status: string }>> {
-    const response = await api.get(`/rooms/${roomId}`);
-    return response.data;
-  }
-
-  /**
    * Start a game
    */
   static async startGame(roomId: string): Promise<APIResponse<{ message: string }>> {
@@ -65,56 +57,6 @@ export class APIService {
    */
   static async getGameState(roomId: string): Promise<APIResponse<GameState>> {
     const response = await api.get(`/games/${roomId}/state`);
-    return response.data;
-  }
-
-  /**
-   * Roll dice
-   */
-  static async rollDice(roomId: string, playerId: string): Promise<APIResponse<any>> {
-    const response = await api.post(`/games/${roomId}/roll-dice`, { playerId });
-    return response.data;
-  }
-
-  /**
-   * Buy stock
-   */
-  static async buyStock(
-    roomId: string, 
-    playerId: string, 
-    stockType: StockType, 
-    shares: number
-  ): Promise<APIResponse<{ message: string }>> {
-    const response = await api.post(`/games/${roomId}/buy-stock`, {
-      playerId,
-      stockType,
-      shares
-    });
-    return response.data;
-  }
-
-  /**
-   * Sell stock
-   */
-  static async sellStock(
-    roomId: string,
-    playerId: string,
-    stockType: StockType,
-    shares: number
-  ): Promise<APIResponse<{ message: string }>> {
-    const response = await api.post(`/games/${roomId}/sell-stock`, {
-      playerId,
-      stockType,
-      shares
-    });
-    return response.data;
-  }
-
-  /**
-   * End turn
-   */
-  static async endTurn(roomId: string): Promise<APIResponse<{ message: string }>> {
-    const response = await api.post(`/games/${roomId}/end-turn`);
     return response.data;
   }
 }

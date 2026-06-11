@@ -45,20 +45,6 @@ export class WebSocketService {
   }
 
   /**
-   * Get current socket instance
-   */
-  getSocket(): WebSocket | null {
-    return this.socket;
-  }
-
-  /**
-   * Check if connected
-   */
-  isConnected(): boolean {
-    return this.socket?.readyState === WebSocket.OPEN;
-  }
-
-  /**
    * Join a game room (opens the room's WebSocket connection)
    */
   joinRoom(roomId: string, playerId: string, playerName: string): void {

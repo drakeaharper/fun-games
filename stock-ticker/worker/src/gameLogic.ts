@@ -86,16 +86,6 @@ export class GameLogic {
   }
 
   /**
-   * Apply stock split: double shares, reset price to $1.00
-   */
-  static applyStockSplit(shares: number): { newShares: number; newPrice: number } {
-    return {
-      newShares: shares * 2,
-      newPrice: STARTING_PRICE
-    };
-  }
-
-  /**
    * Calculate dividend payment for a stock
    * Dividends are only paid for stocks >= $1.00
    */

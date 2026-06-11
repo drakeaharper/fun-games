@@ -37,7 +37,7 @@ const md5 = (str: string): string => {
 /**
  * Generate Gravatar URL
  */
-export const generateGravatarUrl = (email: string, size: number = 80): string => {
+const generateGravatarUrl = (email: string, size: number = 80): string => {
   // For demo purposes, we'll use a hash of the player name as email
   const hash = md5(email);
   return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon&r=pg`;
@@ -78,65 +78,6 @@ export const getPlayerInitials = (name: string): string => {
     return names[0].substring(0, 2).toUpperCase();
   }
   return (names[0][0] + names[names.length - 1][0]).toUpperCase();
-};
-
-/**
- * Format stock price change
- */
-export const formatPriceChange = (change: number): { text: string; className: string } => {
-  if (change > 0) {
-    return {
-      text: `+${formatCurrency(change)}`,
-      className: 'text-green-600'
-    };
-  } else if (change < 0) {
-    return {
-      text: formatCurrency(change),
-      className: 'text-red-600'
-    };
-  } else {
-    return {
-      text: '$0.00',
-      className: 'text-gray-600'
-    };
-  }
-};
-
-/**
- * Calculate percentage change
- */
-export const calculatePercentageChange = (current: number, previous: number): number => {
-  if (previous === 0) return 0;
-  return ((current - previous) / previous) * 100;
-};
-
-/**
- * Format percentage
- */
-export const formatPercentage = (percentage: number): string => {
-  return `${percentage > 0 ? '+' : ''}${percentage.toFixed(1)}%`;
-};
-
-/**
- * Debounce function for user input
- */
-export const debounce = <T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void => {
-  let timeout: NodeJS.Timeout;
-  
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-};
-
-/**
- * Generate unique ID
- */
-export const generateId = (): string => {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
@@ -235,33 +176,3 @@ export const validateInviteCode = (code: string): { valid: boolean; error?: stri
   return { valid: true };
 };
 
-/**
- * Format time duration
- */
-export const formatDuration = (milliseconds: number): string => {
-  const seconds = Math.floor(milliseconds / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  
-  if (hours > 0) {
-    return `${hours}h ${minutes % 60}m`;
-  } else if (minutes > 0) {
-    return `${minutes}m ${seconds % 60}s`;
-  } else {
-    return `${seconds}s`;
-  }
-};
-
-/**
- * Check if device is mobile
- */
-export const isMobile = (): boolean => {
-  return window.innerWidth < 768;
-};
-
-/**
- * Check if device supports touch
- */
-export const isTouchDevice = (): boolean => {
-  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-};
