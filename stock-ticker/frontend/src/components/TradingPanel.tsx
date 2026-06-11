@@ -67,7 +67,9 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
               <div style={{ textAlign: 'right' }}>
                 <div className="font-bold">{formatCurrency(stock.currentPrice)}</div>
                 {playerShares > 0 && (
-                  <div className="text-gray-500">Own: {playerShares.toLocaleString()}</div>
+                  <div className="text-gray-500">
+                    Own: {playerShares.toLocaleString()} · {formatCurrency(playerShares * stock.currentPrice)}
+                  </div>
                 )}
               </div>
 

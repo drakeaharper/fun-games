@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { GameState, GamePhase, GameMode, StockType, DiceResult } from '../types';
 import { APIService } from '../services/api';
 import webSocketService from '../services/websocket';
-import StockCard from './StockCard';
 import TradingPanel from './TradingPanel';
 import PlayerPortfolio from './PlayerPortfolio';
 import { formatCurrency } from '../utils';
@@ -237,50 +236,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
           </div>
         </div>
 
-        {/* Game log — last 10 events, newest on top */}
-        {notifications.length > 0 && (
-          <div className="fixed top-4 right-4 z-40 w-80 max-h-96 overflow-y-auto space-y-1">
-            {[...notifications].reverse().map((notification, index) => (
-              <div
-                key={notifications.length - index}
-                className={`bg-white border border-gray-200 rounded-lg shadow-lg p-2 ${index === 0 ? 'animate-slide-in-right' : 'opacity-80'}`}
-              >
-                <p className="text-sm text-gray-900">{notification}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Stock Market - Full Width */}
-        <div className="card" style={{ flexShrink: 0 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h2 className="text-lg font-bold text-gray-900">📈 Stock Market</h2>
-            <div className="stock-market-grid" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '0.5rem'
-            }}>
-              <style>
-                {`
-                  @media (min-width: 1024px) {
-                    .stock-market-grid {
-                      grid-template-columns: repeat(6, 1fr) !important;
-                    }
-                  }
-                `}
-              </style>
-              {gameState.stocks.map((stock) => (
-                <StockCard
-                  key={stock.stockType}
-                  stock={stock}
-                  playerShares={currentPlayer?.stocks[stock.stockType] || 0}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Main Game Layout: Actions + Other Players */}
+        {/* Main Game Layout: Actions + Game Log + Other Players */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
@@ -413,6 +369,29 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
               )}
             </div>
           </div>
+
+          {/* Game Log — last 10 events, newest on top */}
+          {notifications.length > 0 && (
+            <div className="card" style={{ flexShrink: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <h2 className="text-lg font-bold text-gray-900">📜 Game Log</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '16rem', overflowY: 'auto' }}>
+                  {[...notifications].reverse().map((notification, index) => (
+                    <div
+                      key={notifications.length - index}
+                      className={index === 0 ? '' : 'opacity-80'}
+                      style={{
+                        padding: '0.375rem 0.5rem',
+                        borderBottom: '1px solid var(--st-gray-100)'
+                      }}
+                    >
+                      <p className="text-sm text-gray-900" style={{ margin: 0 }}>{notification}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Other Players - Full Width Below */}
           {gameState.players.filter(p => p.playerId !== playerId).length > 0 && (
