@@ -261,6 +261,8 @@ export class GameRoom extends DurableObject<Env> {
     splitOccurred: boolean;
     dividends: Array<{ playerId: string; playerName: string; amount: number }>;
     belowPar: boolean;
+    offBoard: boolean;
+    forfeitures: Array<{ playerId: string; playerName: string; shares: number }>;
   }> {
     const diceResult = GameLogic.rollDice();
 
@@ -287,6 +289,41 @@ export class GameRoom extends DurableObject<Env> {
       diceResult.resultAction,
       diceResult.resultAmount
     );
+
+    // 1937 rules: a stock that drops to no value is taken off the board — all
+    // player-held shares are forfeited (no compensation) and the price returns
+    // to par. calculateNewStockPrice already returns par for this case.
+    const offBoard = GameLogic.stockGoesOffBoard(
+      currentPrice,
+      diceResult.resultAction,
+      diceResult.resultAmount
+    );
+    const forfeitures: Array<{ playerId: string; playerName: string; shares: number }> = [];
+    if (offBoard) {
+      const holders = this.sql.exec(
+        `SELECT pf.player_id, pf.shares, p.name
+           FROM portfolios pf JOIN players p ON p.id = pf.player_id
+          WHERE pf.stock_type = ? AND pf.shares > 0`,
+        diceResult.resultStock
+      ).toArray();
+
+      for (const holder of holders) {
+        this.recordTransaction(
+          holder.player_id as string, diceResult.resultStock,
+          TransactionAction.FORFEIT, holder.shares as number, 0, 0
+        );
+        forfeitures.push({
+          playerId: holder.player_id as string,
+          playerName: holder.name as string,
+          shares: holder.shares as number
+        });
+      }
+
+      this.sql.exec(
+        'UPDATE portfolios SET shares = 0 WHERE stock_type = ?',
+        diceResult.resultStock
+      );
+    }
 
     let splitOccurred = false;
     if (GameLogic.shouldStockSplit(newPrice)) {
@@ -344,7 +381,7 @@ export class GameRoom extends DurableObject<Env> {
 
     this.sql.exec('UPDATE game_state SET phase = ? WHERE id = 1', GamePhase.TRADING);
 
-    return { diceResult, splitOccurred, dividends, belowPar };
+    return { diceResult, splitOccurred, dividends, belowPar, offBoard, forfeitures };
   }
 
   async buyStock(playerId: string, stockType: StockType, shares: number): Promise<void> {
@@ -559,7 +596,9 @@ export class GameRoom extends DurableObject<Env> {
       diceResult: result.diceResult,
       splitOccurred: result.splitOccurred,
       dividends: result.dividends,
-      belowPar: result.belowPar
+      belowPar: result.belowPar,
+      offBoard: result.offBoard,
+      forfeitures: result.forfeitures
     });
     this.broadcast('game-state-updated', this.buildGameState());
   }

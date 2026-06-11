@@ -73,6 +73,14 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
         addNotification(`🎉 Stock split! ${stockName} shares doubled, price reset to $1.00`);
       }
 
+      if (data.offBoard) {
+        addNotification(`💥 ${stockName} crashed off the board! All shares forfeited — price reset to $1.00`);
+        const myForfeit = data.forfeitures?.find(f => f.playerId === playerId);
+        if (myForfeit) {
+          addNotification(`📉 You lost ${myForfeit.shares.toLocaleString()} shares of ${stockName}`);
+        }
+      }
+
       const myDividend = data.dividends?.find(d => d.playerId === playerId);
       if (myDividend) {
         addNotification(`💰 You received ${formatCurrency(myDividend.amount)} in ${stockName} dividends`);

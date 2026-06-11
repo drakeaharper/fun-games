@@ -95,6 +95,8 @@ export interface WebSocketEvents {
     splitOccurred: boolean;
     dividends?: Array<{ playerId: string; playerName: string; amount: number }>;
     belowPar?: boolean;
+    offBoard?: boolean;
+    forfeitures?: Array<{ playerId: string; playerName: string; shares: number }>;
   }) => void;
   'stock-transaction': (data: { playerId: string; playerName: string; action: string; stockType: string; shares: number; message: string }) => void;
   'player-joined': (data: { playerId: string; playerName: string; message: string }) => void;

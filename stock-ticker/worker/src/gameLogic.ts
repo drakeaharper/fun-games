@@ -50,6 +50,14 @@ export class GameLogic {
   }
 
   /**
+   * Check if a down-roll takes the stock off the board (price would hit $0.00 or less).
+   * 1937 rules: all player-held shares are forfeited and the price returns to par.
+   */
+  static stockGoesOffBoard(currentPrice: number, action: DiceAction, amount: number): boolean {
+    return action === DiceAction.DOWN && currentPrice - amount <= STOCK_RESET_PRICE;
+  }
+
+  /**
    * Check if stock should split at $2.00
    */
   static shouldStockSplit(price: number): boolean {

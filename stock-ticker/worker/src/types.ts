@@ -23,7 +23,8 @@ export enum RoomStatus {
 export enum TransactionAction {
   BUY = 'buy',
   SELL = 'sell',
-  DIVIDEND = 'dividend'
+  DIVIDEND = 'dividend',
+  FORFEIT = 'forfeit'
 }
 
 export enum DiceAction {
