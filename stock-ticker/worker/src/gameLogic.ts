@@ -4,6 +4,7 @@ import {
   DiceResult,
   STOCK_DIE_MAPPING,
   ACTION_DIE_MAPPING,
+  ACTION_WEIGHTS,
   AMOUNT_DIE_MAPPING,
   STARTING_PRICE,
   STOCK_SPLIT_PRICE,
@@ -13,21 +14,41 @@ import {
 
 export class GameLogic {
   /**
-   * Roll three dice and return the interpreted result
+   * Roll three dice and return the interpreted result. The action roll is
+   * weighted per ACTION_WEIGHTS rather than a fair die.
    */
   static rollDice(): DiceResult {
     const stockDie = Math.floor(Math.random() * 6) + 1;
-    const actionDie = Math.floor(Math.random() * 6) + 1;
     const amountDie = Math.floor(Math.random() * 6) + 1;
+
+    const resultAction = GameLogic.rollWeightedAction();
+    // Show a die face that agrees with the weighted action result.
+    const faces = Object.keys(ACTION_DIE_MAPPING)
+      .map(Number)
+      .filter(face => ACTION_DIE_MAPPING[face] === resultAction);
+    const actionDie = faces[Math.floor(Math.random() * faces.length)];
 
     return {
       stockDie,
       actionDie,
       amountDie,
       resultStock: STOCK_DIE_MAPPING[stockDie],
-      resultAction: ACTION_DIE_MAPPING[actionDie],
+      resultAction,
       resultAmount: AMOUNT_DIE_MAPPING[amountDie]
     };
+  }
+
+  private static rollWeightedAction(): DiceAction {
+    const entries = Object.entries(ACTION_WEIGHTS) as Array<[DiceAction, number]>;
+    const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
+    let r = Math.random() * total;
+    for (const [action, weight] of entries) {
+      r -= weight;
+      if (r < 0) {
+        return action;
+      }
+    }
+    return entries[entries.length - 1][0];
   }
 
   /**

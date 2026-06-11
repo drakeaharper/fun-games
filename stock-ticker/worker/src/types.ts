@@ -99,6 +99,14 @@ export const ACTION_DIE_MAPPING: Record<number, DiceAction> = {
   6: DiceAction.DIVIDEND
 };
 
+// Relative odds for the action roll. A fair die would be 1:1:1; UP gets a
+// slight edge (40% vs 30%/30%) so the market drifts gently upward over time.
+export const ACTION_WEIGHTS: Record<DiceAction, number> = {
+  [DiceAction.UP]: 4,
+  [DiceAction.DOWN]: 3,
+  [DiceAction.DIVIDEND]: 3
+};
+
 export const AMOUNT_DIE_MAPPING: Record<number, number> = {
   1: 5,  // 5 cents
   2: 5,  // 5 cents
