@@ -139,15 +139,29 @@ export class GameRoom extends DurableObject<Env> {
     if (!room) {
       throw new Error('Room not found');
     }
+
+    const players = this.sql.exec('SELECT id, name, connected FROM players').toArray();
+    const existing = players.find(p => p.name === playerName);
+
+    if (room.status === RoomStatus.PLAYING) {
+      // A disconnected player can resume their seat by name; their cash,
+      // portfolio, and turn order are still here in the DO.
+      if (existing) {
+        if ((existing.connected as number) === 1) {
+          throw new Error('That player is still in the game');
+        }
+        return { roomId: room.invite_code as string, playerId: existing.id as string };
+      }
+      throw new Error('Room is not accepting new players');
+    }
     if (room.status !== RoomStatus.WAITING) {
       throw new Error('Room is not accepting new players');
     }
 
-    const players = this.sql.exec('SELECT id, name FROM players').toArray();
     if (players.length >= (room.max_players as number)) {
       throw new Error('Room is full');
     }
-    if (players.some(p => p.name === playerName)) {
+    if (existing) {
       throw new Error('Player name already taken in this room');
     }
 

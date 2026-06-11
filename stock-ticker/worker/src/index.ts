@@ -119,7 +119,8 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
           { match: 'Room not found', status: 404, code: 'ROOM_NOT_FOUND', message: 'Room with this invite code does not exist' },
           { match: 'Room is not accepting new players', status: 400, code: 'ROOM_NOT_ACCEPTING', message: 'This room is not accepting new players' },
           { match: 'Room is full', status: 400, code: 'ROOM_FULL', message: 'This room is full' },
-          { match: 'Player name already taken', status: 409, code: 'NAME_TAKEN', message: 'Player name is already taken in this room' }
+          { match: 'Player name already taken', status: 409, code: 'NAME_TAKEN', message: 'Player name is already taken in this room' },
+          { match: 'still in the game', status: 409, code: 'PLAYER_CONNECTED', message: 'That player is still in the game' }
         ], 'Failed to join room');
       }
     }
