@@ -8,7 +8,6 @@ const Footer: React.FC = () => {
       padding: '2rem 0 1rem 0',
       marginTop: 'auto',
       flexShrink: 0,
-      fontFamily: 'Georgia, serif'
     }}>
       <div style={{
         maxWidth: '1200px',
@@ -24,38 +23,38 @@ const Footer: React.FC = () => {
         }}>
           {/* About Section */}
           <div>
-            <h3 style={{ 
-              fontSize: '1.125rem', 
-              fontWeight: 'bold', 
+            <h3 style={{
+              fontSize: '1.125rem',
+              fontWeight: 'bold',
               marginBottom: '0.75rem',
               color: '#e2e8f0'
             }}>
               About Stock Ticker
             </h3>
-            <p style={{ 
-              fontSize: '0.875rem', 
+            <p style={{
+              fontSize: '0.875rem',
               lineHeight: '1.5',
               color: '#cbd5e0',
               margin: 0
             }}>
-              Experience the classic 1937 board game digitally. Buy and sell stocks, 
-              roll the dice, and watch market prices fluctuate in this timeless 
+              Experience the classic 1937 board game digitally. Buy and sell stocks,
+              roll the dice, and watch market prices fluctuate in this timeless
               family game brought to the web.
             </p>
           </div>
 
           {/* Game Rules */}
           <div>
-            <h3 style={{ 
-              fontSize: '1.125rem', 
-              fontWeight: 'bold', 
+            <h3 style={{
+              fontSize: '1.125rem',
+              fontWeight: 'bold',
               marginBottom: '0.75rem',
               color: '#e2e8f0'
             }}>
               How to Play
             </h3>
-            <ul style={{ 
-              fontSize: '0.875rem', 
+            <ul style={{
+              fontSize: '0.875rem',
               color: '#cbd5e0',
               listStyle: 'none',
               padding: 0,
@@ -71,16 +70,16 @@ const Footer: React.FC = () => {
 
           {/* Features */}
           <div>
-            <h3 style={{ 
-              fontSize: '1.125rem', 
-              fontWeight: 'bold', 
+            <h3 style={{
+              fontSize: '1.125rem',
+              fontWeight: 'bold',
               marginBottom: '0.75rem',
               color: '#e2e8f0'
             }}>
               Features
             </h3>
-            <ul style={{ 
-              fontSize: '0.875rem', 
+            <ul style={{
+              fontSize: '0.875rem',
               color: '#cbd5e0',
               listStyle: 'none',
               padding: 0,
@@ -112,7 +111,7 @@ const Footer: React.FC = () => {
             <span>•</span>
             <span>Built with React & Node.js</span>
           </div>
-          
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               Made with <span style={{ color: '#f56565' }}>❤️</span> for family game night

@@ -42,7 +42,6 @@ const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
     justifyContent: 'center',
     fontSize: `${size * 0.35}px`,
     fontWeight: 'bold',
-    fontFamily: 'Georgia, serif',
     border: `3px solid ${isHost ? 'var(--st-gold)' : 'var(--st-primary-blue)'}`,
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
     position: 'relative',
@@ -88,7 +87,7 @@ const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
           )}
         </>
       )}
-      
+
       {imageError && (
         <div
           style={{

@@ -116,7 +116,6 @@ export interface WebSocketEvents {
 export interface UIState {
   isLoading: boolean;
   selectedStock?: StockType;
-  showTradingModal: boolean;
   isRolling: boolean;
   connectionStatus: 'connected' | 'disconnected' | 'reconnecting';
   notifications: Notification[];

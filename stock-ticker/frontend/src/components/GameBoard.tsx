@@ -160,7 +160,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="page-gradient" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
         <div className="card text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading game...</p>
@@ -171,7 +171,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
 
   if (error || !gameState) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="page-gradient" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', flexGrow: 1 }}>
         <div className="card text-center max-w-md">
           <div className="text-red-500 text-5xl mb-4">⚠️</div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Game Error</h2>
@@ -196,8 +196,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
   const canTrade = (isAutoMode || isMyTurn) && gameState.phase === GamePhase.TRADING;
 
   return (
-    <div style={{ 
-      background: 'linear-gradient(145deg, var(--st-cream) 0%, #f0f4f8 100%)',
+    <div className="page-gradient" style={{
       display: 'flex', 
       flexDirection: 'column', 
       flexGrow: 1 

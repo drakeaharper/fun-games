@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StockType, StockPrice, SHARE_LOTS } from '../types';
+import { StockType, StockPrice, SHARE_LOTS, STOCK_NAMES } from '../types';
 import { formatCurrency, getStockEmoji } from '../utils';
 
 interface TradingPanelProps {
@@ -60,9 +60,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ fontSize: '1.125rem' }}>{getStockEmoji(stock.stockType)}</span>
-              <span className="font-medium">
-                {stock.stockType.charAt(0).toUpperCase() + stock.stockType.slice(1)}
-              </span>
+              <span className="font-medium">{STOCK_NAMES[stock.stockType]}</span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

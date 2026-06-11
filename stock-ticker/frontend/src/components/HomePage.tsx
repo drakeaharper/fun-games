@@ -16,12 +16,12 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('join');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Create room state
   const [roomName, setRoomName] = useState('');
   const [creatorName, setCreatorName] = useState('');
   const [gameMode, setGameMode] = useState<GameMode>(GameMode.CLASSIC);
-  
+
   // Join room state
   const [inviteCode, setInviteCode] = useState('');
   const [playerName, setPlayerName] = useState('');
@@ -29,35 +29,35 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     // Validate inputs
     const roomValidation = validateRoomName(roomName);
     if (!roomValidation.valid) {
       setError(roomValidation.error!);
       return;
     }
-    
+
     const nameValidation = validatePlayerName(creatorName);
     if (!nameValidation.valid) {
       setError(nameValidation.error!);
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       // Create room
       const roomResponse = await APIService.createRoom(roomName, gameMode);
       if (!roomResponse.success) {
         throw new Error(roomResponse.error?.message || 'Failed to create room');
       }
-      
+
       // Join the created room
       const joinResponse = await APIService.joinRoom(roomResponse.data!.inviteCode, creatorName);
       if (!joinResponse.success) {
         throw new Error(joinResponse.error?.message || 'Failed to join room');
       }
-      
+
       // Success - notify parent component
       onRoomJoined(
         joinResponse.data!.roomId,
@@ -65,7 +65,7 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
         joinResponse.data!.playerName,
         roomResponse.data!.inviteCode
       );
-      
+
     } catch (error) {
       console.error('Error creating room:', error);
       setError(error instanceof Error ? error.message : 'Failed to create room');
@@ -77,28 +77,28 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
   const handleJoinRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     // Validate inputs
     const codeValidation = validateInviteCode(inviteCode);
     if (!codeValidation.valid) {
       setError(codeValidation.error!);
       return;
     }
-    
+
     const nameValidation = validatePlayerName(playerName);
     if (!nameValidation.valid) {
       setError(nameValidation.error!);
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       const response = await APIService.joinRoom(inviteCode.trim().toUpperCase(), playerName.trim());
       if (!response.success) {
         throw new Error(response.error?.message || 'Failed to join room');
       }
-      
+
       // Success - notify parent component
       onRoomJoined(
         response.data!.roomId,
@@ -106,7 +106,7 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
         response.data!.playerName,
         inviteCode.trim().toUpperCase()
       );
-      
+
     } catch (error) {
       console.error('Error joining room:', error);
       setError(error instanceof Error ? error.message : 'Failed to join room');
@@ -116,8 +116,7 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
   };
 
   return (
-    <div style={{ 
-      background: 'linear-gradient(145deg, var(--st-cream) 0%, #f0f4f8 100%)',
+    <div className="page-gradient" style={{
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -128,13 +127,13 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">📈</div>
-          <h1 className="text-4xl font-bold mb-3" style={{ color: 'var(--st-primary-blue)', fontFamily: 'Georgia, serif' }}>
+          <h1 className="text-4xl font-bold mb-3" style={{ color: 'var(--st-primary-blue)' }}>
             Stock Ticker
           </h1>
-          <p className="text-lg" style={{ color: 'var(--st-gray-700)', fontFamily: 'Georgia, serif' }}>
+          <p className="text-lg" style={{ color: 'var(--st-gray-700)' }}>
             Classic 1937 Investment Game
           </p>
-          <div style={{ 
+          <div style={{
             marginTop: '1.5rem',
             marginBottom: '1rem',
             padding: '1rem 2rem',
@@ -144,7 +143,6 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
             boxShadow: '0 4px 8px rgba(217, 119, 6, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
             color: 'white',
             fontSize: '1rem',
-            fontFamily: 'Georgia, serif',
             fontWeight: 'bold',
             textAlign: 'center',
             textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
@@ -164,7 +162,7 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
         </div>
 
         {/* Tab Selection */}
-        <div style={{ 
+        <div style={{
           display: 'flex',
           background: 'linear-gradient(145deg, var(--st-gray-100) 0%, var(--st-gray-200) 100%)',
           border: '2px solid var(--st-gray-300)',
@@ -179,12 +177,11 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
               padding: '1rem 1.5rem',
               borderRadius: '0.5rem',
               fontWeight: 'bold',
-              fontFamily: 'Georgia, serif',
               fontSize: '1rem',
               border: 'none',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
-              background: activeTab === 'join' 
+              background: activeTab === 'join'
                 ? 'linear-gradient(135deg, var(--st-primary-blue) 0%, var(--st-primary-blue-dark) 100%)'
                 : 'transparent',
               color: activeTab === 'join' ? 'white' : 'var(--st-gray-700)',
@@ -201,12 +198,11 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
               padding: '1rem 1.5rem',
               borderRadius: '0.5rem',
               fontWeight: 'bold',
-              fontFamily: 'Georgia, serif',
               fontSize: '1rem',
               border: 'none',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
-              background: activeTab === 'create' 
+              background: activeTab === 'create'
                 ? 'linear-gradient(135deg, var(--st-gold) 0%, var(--st-gold-dark) 100%)'
                 : 'transparent',
               color: activeTab === 'create' ? 'white' : 'var(--st-gray-700)',
@@ -229,8 +225,8 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
             <div className="flex items-center gap-3">
               <div className="text-2xl">⚠️</div>
               <div>
-                <h4 className="font-bold mb-1" style={{ color: 'var(--st-red)', fontFamily: 'Georgia, serif' }}>Trading Error</h4>
-                <p className="font-medium" style={{ color: 'var(--st-red)', fontFamily: 'Georgia, serif', fontSize: '0.875rem' }}>{error}</p>
+                <h4 className="font-bold mb-1" style={{ color: 'var(--st-red)' }}>Trading Error</h4>
+                <p className="font-medium" style={{ color: 'var(--st-red)', fontSize: '0.875rem' }}>{error}</p>
               </div>
             </div>
           </div>
@@ -240,7 +236,7 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
         {activeTab === 'join' && (
           <form onSubmit={handleJoinRoom} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div>
-              <label htmlFor="inviteCode" className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)', fontFamily: 'Georgia, serif' }}>
+              <label htmlFor="inviteCode" className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)' }}>
                 📧 Trading Room Code
               </label>
               <input
@@ -252,7 +248,6 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
                 maxLength={6}
                 className="form-input text-center text-xl font-bold tracking-widest"
                 style={{
-                  fontFamily: 'Georgia, serif',
                   letterSpacing: '0.2em',
                   fontSize: '1.25rem',
                   padding: '1rem'
@@ -261,9 +256,9 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
                 required
               />
             </div>
-            
+
             <div>
-              <label htmlFor="playerName" className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)', fontFamily: 'Georgia, serif' }}>
+              <label htmlFor="playerName" className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)' }}>
                 👤 Investor Name
               </label>
               <input
@@ -275,7 +270,6 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
                 maxLength={20}
                 className="form-input"
                 style={{
-                  fontFamily: 'Georgia, serif',
                   fontSize: '1rem',
                   padding: '1rem'
                 }}
@@ -283,13 +277,12 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
                 required
               />
             </div>
-            
+
             <button
               type="submit"
               disabled={isLoading}
               className="btn-primary py-4 text-lg font-bold"
               style={{
-                fontFamily: 'Georgia, serif',
                 marginTop: '1rem'
               }}
             >
@@ -302,7 +295,7 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
         {activeTab === 'create' && (
           <form onSubmit={handleCreateRoom} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div>
-              <label htmlFor="roomName" className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)', fontFamily: 'Georgia, serif' }}>
+              <label htmlFor="roomName" className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)' }}>
                 🏛️ Trading Floor Name
               </label>
               <input
@@ -314,7 +307,6 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
                 maxLength={50}
                 className="form-input"
                 style={{
-                  fontFamily: 'Georgia, serif',
                   fontSize: '1rem',
                   padding: '1rem'
                 }}
@@ -322,9 +314,9 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
                 required
               />
             </div>
-            
+
             <div>
-              <label htmlFor="creatorName" className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)', fontFamily: 'Georgia, serif' }}>
+              <label htmlFor="creatorName" className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)' }}>
                 👑 Host Name
               </label>
               <input
@@ -336,7 +328,6 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
                 maxLength={20}
                 className="form-input"
                 style={{
-                  fontFamily: 'Georgia, serif',
                   fontSize: '1rem',
                   padding: '1rem'
                 }}
@@ -346,7 +337,7 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)', fontFamily: 'Georgia, serif' }}>
+              <label className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)' }}>
                 🎮 Game Mode
               </label>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -361,7 +352,6 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
                       padding: '0.75rem',
                       borderRadius: '0.75rem',
                       cursor: 'pointer',
-                      fontFamily: 'Georgia, serif',
                       textAlign: 'center',
                       transition: 'all 0.2s ease',
                       border: gameMode === option.mode ? '2px solid var(--st-primary-blue)' : '2px solid var(--st-gray-300)',
@@ -384,7 +374,6 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
               disabled={isLoading}
               className="btn-gold py-4 text-lg font-bold"
               style={{
-                fontFamily: 'Georgia, serif',
                 marginTop: '1rem'
               }}
             >
@@ -396,17 +385,17 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
         {/* Game Info */}
         <div className="mt-8 pt-6" style={{ borderTop: '2px solid var(--st-gold)', borderImage: 'linear-gradient(90deg, transparent, var(--st-gold), transparent) 1' }}>
           <div className="text-center mb-4">
-            <h3 className="font-bold text-lg" style={{ color: 'var(--st-primary-blue)', fontFamily: 'Georgia, serif' }}>
+            <h3 className="font-bold text-lg" style={{ color: 'var(--st-primary-blue)' }}>
               📊 Quick Start Guide
             </h3>
           </div>
-          <div style={{ 
+          <div style={{
             background: 'linear-gradient(145deg, var(--st-cream) 0%, #fefbf3 100%)',
             border: '1px solid var(--st-cream-dark)',
             borderRadius: '0.75rem',
             padding: '1rem'
           }}>
-            <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontFamily: 'Georgia, serif' }}>
+            <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <li className="flex items-center gap-2" style={{ color: 'var(--st-gray-700)' }}>
                 <span style={{ color: 'var(--st-gold)' }}>🎲</span>
                 <span className="font-medium">Roll dice to move stock prices</span>

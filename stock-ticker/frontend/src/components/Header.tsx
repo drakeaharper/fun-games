@@ -32,22 +32,20 @@ const Header: React.FC<HeaderProps> = ({ showGameInfo, gameInfo }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{ fontSize: '2rem' }}>📈</div>
           <div>
-            <h1 style={{ 
-              fontSize: '1.75rem', 
-              fontWeight: 'bold', 
+            <h1 style={{
+              fontSize: '1.75rem',
+              fontWeight: 'bold',
               margin: 0,
               letterSpacing: '-0.025em',
-              fontFamily: 'Georgia, serif',
               textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
             }}>
               Stock Ticker Game
             </h1>
-            <p style={{ 
-              fontSize: '0.9rem', 
-              margin: 0, 
+            <p style={{
+              fontSize: '0.9rem',
+              margin: 0,
               opacity: 0.9,
               fontWeight: '300',
-              fontFamily: 'Georgia, serif',
               textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)'
             }}>
               Classic 1937 Board Game Experience
@@ -57,21 +55,21 @@ const Header: React.FC<HeaderProps> = ({ showGameInfo, gameInfo }) => {
 
         {/* Right side - Game Info */}
         {showGameInfo && gameInfo && (
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
             gap: '1.5rem',
             fontSize: '0.875rem'
           }}>
             {gameInfo.roomCode && (
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'flex-end' 
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end'
               }}>
                 <span style={{ opacity: 0.8, fontSize: '0.75rem' }}>Room Code</span>
-                <span style={{ 
-                  fontWeight: 'bold', 
+                <span style={{
+                  fontWeight: 'bold',
                   fontSize: '1rem',
                   letterSpacing: '0.1em'
                 }}>
@@ -80,9 +78,9 @@ const Header: React.FC<HeaderProps> = ({ showGameInfo, gameInfo }) => {
               </div>
             )}
             {gameInfo.playerCount !== undefined && (
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 gap: '0.5rem',
                 background: 'linear-gradient(135deg, rgba(217, 119, 6, 0.9), rgba(146, 64, 14, 0.9))',
                 padding: '0.6rem 1.2rem',

@@ -8,8 +8,6 @@ interface PlayerPortfolioProps {
   playerName: string;
   isCurrentPlayer?: boolean;
   isActivePlayer?: boolean;
-  onBuyStock?: (stockType: StockType) => void;
-  onSellStock?: (stockType: StockType) => void;
   compact?: boolean;
   noCard?: boolean;
 }
@@ -19,8 +17,6 @@ const PlayerPortfolio: React.FC<PlayerPortfolioProps> = ({
   playerName,
   isCurrentPlayer = false,
   isActivePlayer = false,
-  onBuyStock,
-  onSellStock,
   compact = false,
   noCard = false
 }) => {
@@ -133,30 +129,6 @@ const PlayerPortfolio: React.FC<PlayerPortfolioProps> = ({
           </div>
         )}
       </div>
-
-      {/* Trading Actions (only for current player) */}
-      {isCurrentPlayer && isActivePlayer && (onBuyStock || onSellStock) && (
-        <div className="space-y-2">
-          <div className="flex space-x-2">
-            {onBuyStock && (
-              <button
-                onClick={() => onBuyStock(StockType.GOLD)} // This will open a stock selection modal
-                className="flex-1 btn-primary text-sm py-2"
-              >
-                💰 Buy Stock
-              </button>
-            )}
-            {onSellStock && stocksOwned.length > 0 && (
-              <button
-                onClick={() => onSellStock(StockType.GOLD)} // This will open a stock selection modal
-                className="flex-1 btn-secondary text-sm py-2"
-              >
-                💸 Sell Stock
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Portfolio Performance */}
       {isCurrentPlayer && (

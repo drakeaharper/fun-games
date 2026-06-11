@@ -1,5 +1,5 @@
 import React from 'react';
-import { StockPrice } from '../types';
+import { StockPrice, STOCK_NAMES } from '../types';
 import { formatCurrency, getStockEmoji, formatPriceChange } from '../utils';
 
 interface StockCardProps {
@@ -19,7 +19,7 @@ const StockCard: React.FC<StockCardProps> = ({
   onClick,
   disabled = false
 }) => {
-  const stockName = stock.stockType.charAt(0).toUpperCase() + stock.stockType.slice(1);
+  const stockName = STOCK_NAMES[stock.stockType];
   const emoji = getStockEmoji(stock.stockType);
   const priceChangeFormatted = formatPriceChange(priceChange);
   
