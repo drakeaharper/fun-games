@@ -1,9 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { APIService } from '../services/api';
 import webSocketService from '../services/websocket';
-import { GameState, GamePhase, GameMode } from '../types';
+import { GameState, GamePhase, GameMode, RoomSettings } from '../types';
 import { copyToClipboard } from '../utils';
 import PlayerAvatar from './PlayerAvatar';
+
+const winConditionText = (settings?: RoomSettings): string => {
+  switch (settings?.endType) {
+    case 'time':
+      return `⏱ ${settings.endValue} minute game — richest player wins!`;
+    case 'networth':
+      return `🏆 First to reach $${(settings.endValue / 100).toLocaleString()} wins!`;
+    case 'rolls':
+      return `🎲 ${settings.endValue} rolls — richest player wins!`;
+    default:
+      return '♾️ Endless market — play as long as you like!';
+  }
+};
 
 interface GameLobbyProps {
   roomId: string;
@@ -20,6 +33,7 @@ const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, inv
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [inviteCopySuccess, setInviteCopySuccess] = useState(false);
 
   useEffect(() => {
     loadGameState();
@@ -124,6 +138,21 @@ const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, inv
         setCopySuccess(true);
         setTimeout(() => setCopySuccess(false), 2000);
       }
+    }
+  };
+
+  const handleCopyInviteMessage = async () => {
+    const modeText = gameState?.mode === GameMode.AUTO ? '⚡ Auto-Roll' : '🎲 Classic';
+    const message = [
+      `📈 Come play Stock Ticker with me! Join my ${modeText} game with code ${inviteCode}`,
+      window.location.origin,
+      winConditionText(gameState?.settings)
+    ].join('\n');
+
+    const success = await copyToClipboard(message);
+    if (success) {
+      setInviteCopySuccess(true);
+      setTimeout(() => setInviteCopySuccess(false), 2000);
     }
   };
 
@@ -269,6 +298,30 @@ const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, inv
                 }}
               >
                 {inviteCode}
+              </button>
+              <button
+                onClick={handleCopyInviteMessage}
+                style={{
+                  marginTop: '0.5rem',
+                  background: inviteCopySuccess
+                    ? 'linear-gradient(135deg, var(--st-green) 0%, #15803d 100%)'
+                    : 'linear-gradient(135deg, var(--st-primary-blue) 0%, var(--st-primary-blue-dark) 100%)',
+                  border: `2px solid ${inviteCopySuccess ? '#15803d' : 'var(--st-primary-blue-dark)'}`,
+                  borderRadius: '0.75rem',
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 'bold',
+                  color: 'white',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
+                  boxShadow: inviteCopySuccess
+                    ? '0 3px 6px rgba(22, 101, 52, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                    : '0 2px 4px rgba(30, 58, 138, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                  minWidth: '120px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {inviteCopySuccess ? '✅ Copied!' : '📨 Copy Invite'}
               </button>
             </div>
           </div>
