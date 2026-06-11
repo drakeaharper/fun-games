@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-webpack5';
 import TradingPanel from './TradingPanel';
-import { StockType } from '../types';
+import { StockType, DiceAction } from '../types';
 
 const stocks = [
   { stockType: StockType.GOLD, currentPrice: 100 },
@@ -76,5 +76,17 @@ export const NotYourTurn: Story = {
   args: {
     playerCash: 450000,
     canTrade: false,
+  },
+};
+
+export const WithPriceChanges: Story = {
+  args: {
+    playerCash: 450000,
+    canTrade: true,
+    priceChanges: {
+      [StockType.GOLD]: { action: DiceAction.UP, amount: 20 },
+      [StockType.SILVER]: { action: DiceAction.DOWN, amount: 5 },
+      [StockType.OIL]: { action: DiceAction.DIVIDEND, amount: 10 },
+    },
   },
 };

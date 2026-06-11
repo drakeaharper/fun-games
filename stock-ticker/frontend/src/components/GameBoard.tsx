@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GameState, GamePhase, GameMode, StockType, DiceResult } from '../types';
+import { GameState, GamePhase, GameMode, StockType, StockPriceChange, DiceResult } from '../types';
 import { APIService } from '../services/api';
 import webSocketService from '../services/websocket';
 import TradingPanel from './TradingPanel';
@@ -18,6 +18,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastDiceResult, setLastDiceResult] = useState<DiceResult | null>(null);
+  const [priceChanges, setPriceChanges] = useState<Partial<Record<StockType, StockPriceChange>>>({});
   const [isRolling, setIsRolling] = useState(false);
   const [notifications, setNotifications] = useState<string[]>([]);
   const [now, setNow] = useState(Date.now());
@@ -74,6 +75,13 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
 
     webSocketService.on('dice-rolled', (data) => {
       setLastDiceResult(data.diceResult);
+      setPriceChanges(prev => ({
+        ...prev,
+        [data.diceResult.resultStock]: {
+          action: data.diceResult.resultAction,
+          amount: data.diceResult.resultAmount
+        }
+      }));
       setIsRolling(false);
       const stockName = data.diceResult.resultStock.toUpperCase();
       const rollMessage = `${data.playerName} rolled the dice! ${stockName} ${data.diceResult.resultAction.toUpperCase()} ${data.diceResult.resultAmount}¢`;
@@ -428,6 +436,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
                   stocks={gameState.stocks}
                   playerCash={currentPlayer?.cash || 0}
                   playerStocks={currentPlayer?.stocks || ({} as Record<StockType, number>)}
+                  priceChanges={priceChanges}
                   canTrade={canTrade}
                   onTrade={handleTrade}
                 />

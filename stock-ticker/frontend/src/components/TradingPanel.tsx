@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { StockType, StockPrice, SHARE_LOTS, STOCK_NAMES } from '../types';
+import { StockType, StockPrice, StockPriceChange, DiceAction, SHARE_LOTS, STOCK_NAMES } from '../types';
 import { formatCurrency, getStockEmoji } from '../utils';
 
 interface TradingPanelProps {
   stocks: StockPrice[];
   playerCash: number;
   playerStocks: Record<StockType, number>;
+  /** Each stock's latest roll effect, displayed until its next roll */
+  priceChanges?: Partial<Record<StockType, StockPriceChange>>;
   /** When false, all Buy/Sell buttons are disabled (not your turn / not trading phase) */
   canTrade: boolean;
   onTrade: (mode: 'buy' | 'sell', stockType: StockType, shares: number) => void;
@@ -15,6 +17,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
   stocks,
   playerCash,
   playerStocks,
+  priceChanges = {},
   canTrade,
   onTrade
 }) => {
@@ -41,6 +44,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
         const playerShares = playerStocks[stock.stockType] || 0;
         const canBuy = canTrade && playerCash >= stock.currentPrice * tradeLot;
         const canSell = canTrade && playerShares >= tradeLot;
+        const change = priceChanges[stock.stockType];
 
         return (
           <div
@@ -64,6 +68,16 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {change && (
+                <span
+                  className="font-bold"
+                  style={{ color: change.action === DiceAction.DOWN ? 'var(--st-red)' : 'var(--st-green)' }}
+                >
+                  {change.action === DiceAction.DIVIDEND
+                    ? `💰${formatCurrency(change.amount)}`
+                    : `${change.action === DiceAction.UP ? '+' : '−'}${formatCurrency(change.amount)}`}
+                </span>
+              )}
               <div style={{ textAlign: 'right' }}>
                 <div className="font-bold">{formatCurrency(stock.currentPrice)}</div>
                 {playerShares > 0 && (

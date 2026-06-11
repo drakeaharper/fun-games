@@ -39,6 +39,12 @@ export interface StockPrice {
   currentPrice: number; // in cents
 }
 
+/** The most recent dice roll's effect on a stock, shown until its next roll */
+export interface StockPriceChange {
+  action: DiceAction;
+  amount: number; // in cents
+}
+
 export interface PlayerPortfolio {
   playerId: string;
   playerName: string;
