@@ -37,6 +37,14 @@ Open **http://localhost:3000**. The dev server is pointed at the local Worker by
 
 To test the production setup locally (Worker serving the built frontend itself), run `npm run build` in `frontend/`, then `npm run dev` in `worker/` and open **http://localhost:8787**.
 
+### UI development with Storybook
+
+```bash
+cd frontend && npm run storybook   # opens on http://localhost:6006
+```
+
+Components have stories covering their game states (e.g. `StockCard`: at par, below par, near split; `TradingModal`: buy/sell/low cash) — tinker there without spinning up a game. Stories live next to their components as `*.stories.tsx`.
+
 ### Deploy
 
 ```bash

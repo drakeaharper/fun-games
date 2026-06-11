@@ -15,6 +15,15 @@
     "noFallthroughCasesInSwitch": true,
     "module": "esnext",
     "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      // TS 4.9's node resolution can't read Storybook 10's `exports`-only
+      // packages; point the type-checker straight at the declaration files.
+      "@storybook/react-webpack5": ["node_modules/@storybook/react-webpack5/dist/index.d.ts"],
+      "@storybook/react": ["node_modules/@storybook/react/dist/index.d.ts"],
+      "storybook/internal/types": ["node_modules/storybook/dist/types/index.d.ts"],
+      "storybook/internal/csf": ["node_modules/storybook/dist/csf/index.d.ts"]
+    },
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
