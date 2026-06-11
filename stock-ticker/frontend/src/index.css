@@ -301,6 +301,72 @@ code {
   border-color: #9ca3af;
 }
 
+/* Trading panel Buy/Sell buttons */
+.btn-trade {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+  font-family: 'Georgia', serif;
+  color: white;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-trade.buy {
+  background: linear-gradient(135deg, var(--st-green-light) 0%, var(--st-green) 100%);
+  border-color: var(--st-green);
+}
+
+.btn-trade.sell {
+  background: linear-gradient(135deg, #ef4444 0%, var(--st-red) 100%);
+  border-color: var(--st-red);
+}
+
+.btn-trade:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.btn-trade:disabled {
+  background: var(--st-gray-100);
+  border-color: var(--st-gray-200);
+  color: var(--st-gray-300);
+  cursor: not-allowed;
+}
+
+/* Share-lot selector (trading panel) */
+.lot-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.lot-btn {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+  font-family: 'Georgia', serif;
+  background: white;
+  color: var(--st-gray-700);
+  border: 1px solid var(--st-gray-300);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lot-btn:hover {
+  border-color: var(--st-primary-blue-light);
+}
+
+.lot-btn.active {
+  background: var(--st-primary-blue);
+  color: white;
+  border-color: var(--st-primary-blue-dark);
+}
+
 /* Stock Ticker Dice Styles */
 .dice {
   width: 3rem;

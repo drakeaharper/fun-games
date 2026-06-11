@@ -3,8 +3,9 @@ import { GameState, GamePhase, StockType, DiceResult } from '../types';
 import { APIService } from '../services/api';
 import webSocketService from '../services/websocket';
 import StockCard from './StockCard';
+import TradingPanel from './TradingPanel';
 import PlayerPortfolio from './PlayerPortfolio';
-import { formatCurrency, getStockEmoji } from '../utils';
+import { formatCurrency } from '../utils';
 
 interface GameBoardProps {
   roomId: string;
@@ -19,9 +20,6 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
   const [error, setError] = useState<string | null>(null);
   const [lastDiceResult, setLastDiceResult] = useState<DiceResult | null>(null);
   const [isRolling, setIsRolling] = useState(false);
-  const [showTradingModal, setShowTradingModal] = useState(false);
-  const [tradingMode, setTradingMode] = useState<'buy' | 'sell'>('buy');
-  const [isTrading, setIsTrading] = useState(false);
   const [notifications, setNotifications] = useState<string[]>([]);
 
   useEffect(() => {
@@ -124,23 +122,18 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
   };
 
 
-  const handleTrade = async (stockType: StockType, shares: number) => {
-    setIsTrading(true);
+  const handleTrade = (mode: 'buy' | 'sell', stockType: StockType, shares: number) => {
     setError(null);
 
     try {
-      if (tradingMode === 'buy') {
+      if (mode === 'buy') {
         webSocketService.buyStock(roomId, playerId, stockType, shares);
       } else {
         webSocketService.sellStock(roomId, playerId, stockType, shares);
       }
-      
-      setShowTradingModal(false);
     } catch (error) {
       console.error('Error trading stock:', error);
-      setError(`Failed to ${tradingMode} stock`);
-    } finally {
-      setIsTrading(false);
+      setError(`Failed to ${mode} stock`);
     }
   };
 
@@ -248,9 +241,9 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
         <div className="card" style={{ flexShrink: 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h2 className="text-lg font-bold text-gray-900">📈 Stock Market</h2>
-            <div className="stock-market-grid" style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(3, 1fr)', 
+            <div className="stock-market-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
               gap: '0.5rem'
             }}>
               <style>
@@ -385,113 +378,35 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
                 {/* Divider */}
                 <div className="border-t border-gray-200" style={{ flexShrink: 0 }}></div>
 
-                {/* Trading Section */}
+                {/* Trading Section — always visible, buttons enabled only during your trading phase */}
                 <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <h3 className="text-md font-semibold text-gray-900">💰 Trading</h3>
-                  
-                  {canTrade ? (
-                    <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {!showTradingModal ? (
-                        <>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                            <button
-                              onClick={() => { setTradingMode('buy'); setShowTradingModal(true); }}
-                              className="btn-primary py-3 text-sm font-semibold rounded-lg transition-all hover:scale-105"
-                            >
-                              💰 Buy Stock
-                            </button>
-                            <button
-                              onClick={() => { setTradingMode('sell'); setShowTradingModal(true); }}
-                              className="btn-secondary py-3 text-sm font-semibold rounded-lg transition-all hover:scale-105"
-                            >
-                              💸 Sell Stock
-                            </button>
-                          </div>
-                          <div style={{ flexGrow: 1 }}></div>
-                          <button
-                            onClick={handleEndTurn}
-                            className="w-full btn-success text-sm"
-                          >
-                            ⏭️ End Turn
-                          </button>
-                        </>
-                      ) : (
-                        /* Inline Trading Interface */
-                        <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h4 className="text-sm font-semibold text-gray-900">
-                              {tradingMode === 'buy' ? '💰 Buy Stock' : '💸 Sell Stock'}
-                            </h4>
-                            <button
-                              onClick={() => setShowTradingModal(false)}
-                              className="text-gray-500 hover:text-gray-700 text-sm bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded transition-colors"
-                              style={{ flexShrink: 0 }}
-                            >
-                              ✕ Cancel
-                            </button>
-                          </div>
-                          
-                          <div style={{ 
-                            flexGrow: 1, 
-                            overflow: 'auto',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.5rem'
-                          }}>
-                            {gameState.stocks.map((stock) => {
-                              const playerShares = currentPlayer?.stocks[stock.stockType] || 0;
-                              const canAfford = tradingMode === 'buy' ? (currentPlayer?.cash || 0) >= stock.currentPrice * 500 : playerShares >= 500;
-                              
-                              return (
-                                <button
-                                  key={stock.stockType}
-                                  onClick={() => {
-                                    handleTrade(stock.stockType, 500);
-                                    setShowTradingModal(false);
-                                  }}
-                                  disabled={!canAfford || isTrading}
-                                  className={`w-full border rounded-lg text-left text-xs transition-all ${
-                                    canAfford ? 'border-gray-300 hover:bg-gray-50 hover:border-gray-400' : 'border-gray-200 bg-gray-50 opacity-50'
-                                  }`}
-                                  style={{ 
-                                    padding: '0.75rem',
-                                    flexShrink: 0
-                                  }}
-                                >
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                      <span style={{ fontSize: '1.125rem' }}>{getStockEmoji(stock.stockType)}</span>
-                                      <span className="font-medium">{stock.stockType.charAt(0).toUpperCase() + stock.stockType.slice(1)}</span>
-                                    </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                      <div className="font-bold">{formatCurrency(stock.currentPrice)}</div>
-                                      {tradingMode === 'buy' && (
-                                        <div className="text-gray-500">Cost: {formatCurrency(stock.currentPrice * 500)}</div>
-                                      )}
-                                      {tradingMode === 'sell' && playerShares > 0 && (
-                                        <div className="text-gray-500">Own: {playerShares}</div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div style={{ 
-                      flexGrow: 1, 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center' 
-                    }}>
-                      <div style={{ textAlign: 'center' }} className="text-gray-500">
-                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⏰</div>
-                        <div className="text-sm">Wait for trading phase</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 className="text-md font-semibold text-gray-900">💰 Trading</h3>
+                    {!canTrade && (
+                      <div className="text-xs text-gray-500" style={{ flexShrink: 0 }}>
+                        {isMyTurn ? 'Roll the dice to start trading' : 'Wait for your turn to trade'}
                       </div>
-                    </div>
+                    )}
+                  </div>
+
+                  <div style={{ flexGrow: 1, overflow: 'auto' }}>
+                    <TradingPanel
+                      stocks={gameState.stocks}
+                      playerCash={currentPlayer?.cash || 0}
+                      playerStocks={currentPlayer?.stocks || ({} as Record<StockType, number>)}
+                      canTrade={canTrade}
+                      onTrade={handleTrade}
+                    />
+                  </div>
+
+                  {canTrade && (
+                    <button
+                      onClick={handleEndTurn}
+                      className="w-full btn-success text-sm"
+                      style={{ flexShrink: 0 }}
+                    >
+                      ⏭️ End Turn
+                    </button>
                   )}
                 </div>
             </div>
