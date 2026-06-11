@@ -68,14 +68,6 @@ export const ActiveTurn: Story = {
   },
 };
 
-export const Compact: Story = {
-  args: {
-    portfolio: richPortfolio,
-    playerName: 'HostHarry',
-    compact: true,
-  },
-};
-
 export const Disconnected: Story = {
   args: {
     portfolio: { ...richPortfolio, connected: false },

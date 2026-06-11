@@ -411,7 +411,6 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
                       playerName={portfolio.playerName}
                       isCurrentPlayer={false}
                       isActivePlayer={portfolio.playerId === gameState.currentPlayerId}
-                      compact={true}
                     />
                   ))}
               </div>
