@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GameState, GamePhase, StockType, DiceResult } from '../types';
+import { GameState, GamePhase, GameMode, StockType, DiceResult } from '../types';
 import { APIService } from '../services/api';
 import webSocketService from '../services/websocket';
 import StockCard from './StockCard';
@@ -190,9 +190,10 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
   }
 
   const currentPlayer = gameState.players.find(p => p.playerId === playerId);
+  const isAutoMode = gameState.mode === GameMode.AUTO;
   const isMyTurn = gameState.currentPlayerId === playerId;
-  const canRoll = isMyTurn && gameState.phase === GamePhase.ROLLING;
-  const canTrade = isMyTurn && gameState.phase === GamePhase.TRADING;
+  const canRoll = !isAutoMode && isMyTurn && gameState.phase === GamePhase.ROLLING;
+  const canTrade = (isAutoMode || isMyTurn) && gameState.phase === GamePhase.TRADING;
 
   return (
     <div style={{ 
@@ -207,11 +208,17 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div>
-                <span className="text-sm text-gray-600">Turn {gameState.currentTurn + 1}</span>
-                <span className="mx-2 text-gray-400">•</span>
-                <span className="text-sm font-medium text-blue-600">
-                  {gameState.phase.replace('_', ' ').toUpperCase()}
-                </span>
+                {isAutoMode ? (
+                  <span className="text-sm font-medium text-blue-600">⚡ AUTO-ROLL</span>
+                ) : (
+                  <>
+                    <span className="text-sm text-gray-600">Turn {gameState.currentTurn + 1}</span>
+                    <span className="mx-2 text-gray-400">•</span>
+                    <span className="text-sm font-medium text-blue-600">
+                      {gameState.phase.replace('_', ' ').toUpperCase()}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
             
@@ -366,17 +373,23 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
                       ))}
                     </div>
                     
-                    <button
-                      onClick={handleRollDice}
-                      disabled={!canRoll || isRolling}
-                      className={`btn-primary px-6 py-2 text-sm font-semibold ${isRolling ? 'animate-pulse' : ''}`}
-                      style={{ flexShrink: 0 }}
-                    >
-                      {isRolling ? 'Rolling...' : 'Roll Dice'}
-                    </button>
+                    {isAutoMode ? (
+                      <div className="text-xs text-gray-600 bg-gray-100 px-3 py-2 rounded" style={{ flexShrink: 0 }}>
+                        ⚡ The market rolls itself every 5 seconds
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handleRollDice}
+                        disabled={!canRoll || isRolling}
+                        className={`btn-primary px-6 py-2 text-sm font-semibold ${isRolling ? 'animate-pulse' : ''}`}
+                        style={{ flexShrink: 0 }}
+                      >
+                        {isRolling ? 'Rolling...' : 'Roll Dice'}
+                      </button>
+                    )}
                   </div>
-                  
-                  {!canRoll && !isRolling && (
+
+                  {!isAutoMode && !canRoll && !isRolling && (
                     <div className="text-xs text-gray-500" style={{ textAlign: 'center' }}>
                       {gameState.phase !== GamePhase.ROLLING ? 'Game not in rolling phase' : 'Wait for your turn'}
                     </div>
@@ -390,7 +403,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
                 <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3 className="text-md font-semibold text-gray-900">💰 Trading</h3>
-                    {!canTrade && (
+                    {!canTrade && !isAutoMode && (
                       <div className="text-xs text-gray-500" style={{ flexShrink: 0 }}>
                         {isMyTurn ? 'Roll the dice to start trading' : 'Wait for your turn to trade'}
                       </div>
@@ -407,7 +420,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
                     />
                   </div>
 
-                  {canTrade && (
+                  {canTrade && !isAutoMode && (
                     <button
                       onClick={handleEndTurn}
                       className="w-full btn-success text-sm"

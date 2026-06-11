@@ -3,6 +3,7 @@ import { GameLogic } from './gameLogic';
 import {
   StockType,
   GamePhase,
+  GameMode,
   RoomStatus,
   TransactionAction,
   GameStateData,
@@ -11,7 +12,8 @@ import {
   DiceResult,
   STARTING_CASH,
   STARTING_PRICE,
-  MAX_PLAYERS
+  MAX_PLAYERS,
+  AUTO_ROLL_INTERVAL_MS
 } from './types';
 import type { Env } from './index';
 
@@ -19,6 +21,10 @@ interface SocketAttachment {
   playerId: string;
   playerName: string;
 }
+
+/** Pseudo player id recorded for dice rolls made by the auto-roll alarm. */
+const AUTO_ROLLER_ID = 'auto';
+const AUTO_ROLLER_NAME = 'The Market';
 
 /**
  * One GameRoom Durable Object per game room (DO id derived from the invite
@@ -37,7 +43,8 @@ export class GameRoom extends DurableObject<Env> {
         name TEXT NOT NULL,
         invite_code TEXT NOT NULL,
         status TEXT NOT NULL,
-        max_players INTEGER NOT NULL DEFAULT ${MAX_PLAYERS}
+        max_players INTEGER NOT NULL DEFAULT ${MAX_PLAYERS},
+        mode TEXT NOT NULL DEFAULT '${GameMode.CLASSIC}'
       );
       CREATE TABLE IF NOT EXISTS players (
         id TEXT PRIMARY KEY,
@@ -84,21 +91,32 @@ export class GameRoom extends DurableObject<Env> {
         created_at TEXT NOT NULL
       );
     `);
+
+    // Rooms created before game modes existed lack the mode column.
+    try {
+      this.sql.exec(`ALTER TABLE room ADD COLUMN mode TEXT NOT NULL DEFAULT '${GameMode.CLASSIC}'`);
+    } catch {
+      // Column already exists.
+    }
   }
 
   // ---------------------------------------------------------------------
   // Room lifecycle (called via RPC from the Worker)
   // ---------------------------------------------------------------------
 
-  async createRoom(name: string, inviteCode: string): Promise<{ roomId: string; inviteCode: string }> {
+  async createRoom(
+    name: string,
+    inviteCode: string,
+    mode: GameMode = GameMode.CLASSIC
+  ): Promise<{ roomId: string; inviteCode: string; mode: GameMode }> {
     const existing = this.sql.exec('SELECT id FROM room').toArray();
     if (existing.length > 0) {
       throw new Error('Room already exists');
     }
 
     this.sql.exec(
-      'INSERT INTO room (id, name, invite_code, status) VALUES (1, ?, ?, ?)',
-      name, inviteCode, RoomStatus.WAITING
+      'INSERT INTO room (id, name, invite_code, status, mode) VALUES (1, ?, ?, ?, ?)',
+      name, inviteCode, RoomStatus.WAITING, mode
     );
 
     for (const stock of GameLogic.initializeStocks()) {
@@ -113,7 +131,7 @@ export class GameRoom extends DurableObject<Env> {
       GamePhase.WAITING
     );
 
-    return { roomId: inviteCode, inviteCode };
+    return { roomId: inviteCode, inviteCode, mode };
   }
 
   async joinRoom(playerName: string): Promise<{ roomId: string; playerId: string }> {
@@ -149,7 +167,7 @@ export class GameRoom extends DurableObject<Env> {
     return { roomId: room.invite_code as string, playerId };
   }
 
-  async getRoomInfo(): Promise<{ id: string; name: string; inviteCode: string; status: string }> {
+  async getRoomInfo(): Promise<{ id: string; name: string; inviteCode: string; status: string; mode: GameMode }> {
     const room = this.getRoomRow();
     if (!room) {
       throw new Error('Room not found');
@@ -158,7 +176,8 @@ export class GameRoom extends DurableObject<Env> {
       id: room.invite_code as string,
       name: room.name as string,
       inviteCode: room.invite_code as string,
-      status: room.status as string
+      status: room.status as string,
+      mode: this.getMode(room)
     };
   }
 
@@ -176,12 +195,51 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     this.sql.exec('UPDATE room SET status = ? WHERE id = 1', RoomStatus.PLAYING);
-    this.sql.exec(
-      'UPDATE game_state SET phase = ?, current_player_id = ? WHERE id = 1',
-      GamePhase.ROLLING, players[0].id as string
-    );
+
+    if (this.getMode(room) === GameMode.AUTO) {
+      // No turns in auto mode: everyone trades whenever they like and the
+      // market rolls itself on a timer via the DO alarm.
+      this.sql.exec('UPDATE game_state SET phase = ? WHERE id = 1', GamePhase.TRADING);
+      await this.ctx.storage.setAlarm(Date.now() + AUTO_ROLL_INTERVAL_MS);
+    } else {
+      this.sql.exec(
+        'UPDATE game_state SET phase = ?, current_player_id = ? WHERE id = 1',
+        GamePhase.ROLLING, players[0].id as string
+      );
+    }
 
     this.broadcast('game-state-updated', this.buildGameState());
+  }
+
+  /**
+   * Auto-roll heartbeat. While an auto-mode game is in progress and at least
+   * one player is connected, roll the dice and re-arm the alarm. When the
+   * room empties the alarm is simply not re-armed (pausing the market);
+   * handleJoin re-arms it when someone comes back.
+   */
+  async alarm(): Promise<void> {
+    const room = this.getRoomRow();
+    if (!room || room.status !== RoomStatus.PLAYING || this.getMode(room) !== GameMode.AUTO) {
+      return;
+    }
+    if (this.ctx.getWebSockets().length === 0) {
+      return;
+    }
+
+    const result = await this.performRoll(AUTO_ROLLER_ID);
+    this.broadcast('dice-rolled', {
+      playerId: AUTO_ROLLER_ID,
+      playerName: AUTO_ROLLER_NAME,
+      diceResult: result.diceResult,
+      splitOccurred: result.splitOccurred,
+      dividends: result.dividends,
+      belowPar: result.belowPar,
+      offBoard: result.offBoard,
+      forfeitures: result.forfeitures
+    });
+    this.broadcast('game-state-updated', this.buildGameState());
+
+    await this.ctx.storage.setAlarm(Date.now() + AUTO_ROLL_INTERVAL_MS);
   }
 
   // ---------------------------------------------------------------------
@@ -244,6 +302,7 @@ export class GameRoom extends DurableObject<Env> {
 
     return {
       roomId: room.invite_code as string,
+      mode: this.getMode(room),
       currentTurn: state.current_turn as number,
       currentPlayerId: (state.current_player_id as string) ?? null,
       phase: state.phase as GamePhase,
@@ -257,6 +316,21 @@ export class GameRoom extends DurableObject<Env> {
   // ---------------------------------------------------------------------
 
   async rollDice(playerId: string): Promise<{
+    diceResult: DiceResult;
+    splitOccurred: boolean;
+    dividends: Array<{ playerId: string; playerName: string; amount: number }>;
+    belowPar: boolean;
+    offBoard: boolean;
+    forfeitures: Array<{ playerId: string; playerName: string; shares: number }>;
+  }> {
+    if (this.getMode() === GameMode.AUTO) {
+      throw new Error('The dice roll automatically in this game mode');
+    }
+    return this.performRoll(playerId);
+  }
+
+  /** Resolve one dice roll against the market (shared by manual rolls and the auto-roll alarm). */
+  private async performRoll(playerId: string): Promise<{
     diceResult: DiceResult;
     splitOccurred: boolean;
     dividends: Array<{ playerId: string; playerName: string; amount: number }>;
@@ -438,6 +512,9 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   async endTurn(): Promise<{ currentPlayerId: string }> {
+    if (this.getMode() === GameMode.AUTO) {
+      throw new Error('There are no turns in this game mode');
+    }
     const state = this.sql.exec('SELECT current_turn FROM game_state WHERE id = 1').toArray()[0];
     const players = this.sql.exec(
       'SELECT id FROM players ORDER BY turn_order ASC'
@@ -478,6 +555,10 @@ export class GameRoom extends DurableObject<Env> {
 
   private getRoomRow() {
     return this.sql.exec('SELECT * FROM room WHERE id = 1').toArray()[0];
+  }
+
+  private getMode(room = this.getRoomRow()): GameMode {
+    return ((room?.mode as GameMode) ?? GameMode.CLASSIC);
   }
 
   // ---------------------------------------------------------------------
@@ -569,6 +650,16 @@ export class GameRoom extends DurableObject<Env> {
 
     ws.serializeAttachment({ playerId, playerName } satisfies SocketAttachment);
     this.sql.exec('UPDATE players SET connected = 1 WHERE id = ?', playerId);
+
+    // Auto-roll games pause while the room is empty; restart the market
+    // when someone (re)connects.
+    const room = this.getRoomRow();
+    if (room && room.status === RoomStatus.PLAYING && this.getMode(room) === GameMode.AUTO) {
+      const pending = await this.ctx.storage.getAlarm();
+      if (pending === null) {
+        await this.ctx.storage.setAlarm(Date.now() + AUTO_ROLL_INTERVAL_MS);
+      }
+    }
 
     this.broadcast('player-joined', {
       playerId,

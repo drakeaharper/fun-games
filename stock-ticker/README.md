@@ -56,11 +56,15 @@ First time: `npx wrangler login` to authorize your Cloudflare account. Everythin
 
 ### Play
 
-1. Click **Create Game**, enter a room name and your name.
+1. Click **Create Game**, enter a room name and your name, and pick a game mode.
 2. Share the 6-character invite code with other players.
 3. Other players join from their devices using the code.
 4. Host starts the game once 2+ players have joined.
-5. Roll dice → buy/sell stocks → end turn → repeat!
+
+**Game modes:**
+
+- **🎲 Classic** — turn-based, like the original board game: roll dice → buy/sell stocks → end turn → repeat.
+- **⚡ Auto-Roll** — the market rolls the dice itself every 5 seconds and everyone can buy and sell at any time. The market pauses while nobody is connected and resumes when someone returns.
 
 ## Project Layout
 

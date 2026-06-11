@@ -20,6 +20,11 @@ export enum RoomStatus {
   FINISHED = 'finished'
 }
 
+export enum GameMode {
+  CLASSIC = 'classic',
+  AUTO = 'auto'
+}
+
 export enum TransactionAction {
   BUY = 'buy',
   SELL = 'sell',
@@ -58,6 +63,7 @@ export interface PlayerPortfolio {
 
 export interface GameStateData {
   roomId: string;
+  mode: GameMode;
   currentTurn: number;
   currentPlayerId: string | null;
   phase: GamePhase;
@@ -72,6 +78,7 @@ export const STOCK_SPLIT_PRICE = 200; // $2.00 in cents
 export const STOCK_RESET_PRICE = 0; // $0.00 in cents
 export const SHARE_LOTS = [500, 1000, 2000, 5000];
 export const MAX_PLAYERS = 6;
+export const AUTO_ROLL_INTERVAL_MS = 5000;
 
 // Dice mappings based on original game rules
 export const STOCK_DIE_MAPPING: Record<number, StockType> = {

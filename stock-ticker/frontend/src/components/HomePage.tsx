@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { APIService } from '../services/api';
+import { GameMode } from '../types';
 import { validatePlayerName, validateRoomName, validateInviteCode } from '../utils';
+
+const GAME_MODE_OPTIONS = [
+  { mode: GameMode.CLASSIC, icon: '🎲', title: 'Classic', description: 'Take turns rolling the dice' },
+  { mode: GameMode.AUTO, icon: '⚡', title: 'Auto-Roll', description: 'Dice roll every 5 seconds — trade anytime' }
+];
 
 interface HomePageProps {
   onRoomJoined: (roomId: string, playerId: string, playerName: string, inviteCode: string) => void;
@@ -14,6 +20,7 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
   // Create room state
   const [roomName, setRoomName] = useState('');
   const [creatorName, setCreatorName] = useState('');
+  const [gameMode, setGameMode] = useState<GameMode>(GameMode.CLASSIC);
   
   // Join room state
   const [inviteCode, setInviteCode] = useState('');
@@ -40,7 +47,7 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
     
     try {
       // Create room
-      const roomResponse = await APIService.createRoom(roomName);
+      const roomResponse = await APIService.createRoom(roomName, gameMode);
       if (!roomResponse.success) {
         throw new Error(roomResponse.error?.message || 'Failed to create room');
       }
@@ -337,7 +344,41 @@ const HomePage: React.FC<HomePageProps> = ({ onRoomJoined }) => {
                 required
               />
             </div>
-            
+
+            <div>
+              <label className="block text-sm font-bold mb-2" style={{ color: 'var(--st-gray-700)', fontFamily: 'Georgia, serif' }}>
+                🎮 Game Mode
+              </label>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                {GAME_MODE_OPTIONS.map((option) => (
+                  <button
+                    type="button"
+                    key={option.mode}
+                    onClick={() => setGameMode(option.mode)}
+                    disabled={isLoading}
+                    style={{
+                      flex: 1,
+                      padding: '0.75rem',
+                      borderRadius: '0.75rem',
+                      cursor: 'pointer',
+                      fontFamily: 'Georgia, serif',
+                      textAlign: 'center',
+                      transition: 'all 0.2s ease',
+                      border: gameMode === option.mode ? '2px solid var(--st-primary-blue)' : '2px solid var(--st-gray-300)',
+                      background: gameMode === option.mode
+                        ? 'linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%)'
+                        : 'white',
+                      boxShadow: gameMode === option.mode ? '0 2px 4px rgba(30, 58, 138, 0.2)' : 'none'
+                    }}
+                  >
+                    <div style={{ fontSize: '1.5rem' }}>{option.icon}</div>
+                    <div style={{ fontWeight: 'bold', color: 'var(--st-gray-900)' }}>{option.title}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--st-gray-600)' }}>{option.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={isLoading}

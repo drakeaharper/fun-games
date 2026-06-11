@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { APIService } from '../services/api';
 import webSocketService from '../services/websocket';
-import { GameState, GamePhase } from '../types';
+import { GameState, GamePhase, GameMode } from '../types';
 import { copyToClipboard } from '../utils';
 import PlayerAvatar from './PlayerAvatar';
 
@@ -208,6 +208,26 @@ const GameLobby: React.FC<GameLobbyProps> = ({ roomId, playerId, playerName, inv
             <div style={{ flexGrow: 1 }}>
               <h1 className="text-3xl font-bold" style={{ color: 'var(--st-primary-blue)', fontFamily: 'Georgia, serif' }}>🏛️ Game Lobby</h1>
               <p style={{ color: 'var(--st-gray-700)', fontFamily: 'Georgia, serif' }}>Gathering investors for the trading floor...</p>
+              {gameState?.mode && (
+                <span style={{
+                  display: 'inline-block',
+                  marginTop: '0.5rem',
+                  padding: '0.375rem 0.75rem',
+                  borderRadius: '1rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 'bold',
+                  fontFamily: 'Georgia, serif',
+                  color: 'white',
+                  background: gameState.mode === GameMode.AUTO
+                    ? 'linear-gradient(135deg, var(--st-gold) 0%, var(--st-gold-dark) 100%)'
+                    : 'linear-gradient(135deg, var(--st-primary-blue) 0%, var(--st-primary-blue-dark) 100%)',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)'
+                }}>
+                  {gameState.mode === GameMode.AUTO
+                    ? '⚡ Auto-Roll — dice roll every 5 seconds, trade anytime'
+                    : '🎲 Classic — take turns rolling the dice'}
+                </span>
+              )}
             </div>
             
             {/* Invite Code */}

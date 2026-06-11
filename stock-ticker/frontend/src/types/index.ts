@@ -14,6 +14,11 @@ export enum GamePhase {
   GAME_OVER = 'game_over'
 }
 
+export enum GameMode {
+  CLASSIC = 'classic',
+  AUTO = 'auto'
+}
+
 export enum DiceAction {
   UP = 'up',
   DOWN = 'down',
@@ -45,6 +50,7 @@ export interface PlayerPortfolio {
 
 export interface GameState {
   roomId: string;
+  mode?: GameMode;
   currentTurn: number;
   currentPlayerId: string | null;
   phase: GamePhase;

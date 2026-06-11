@@ -1,6 +1,6 @@
 import { GameRoom } from './gameRoom';
 import { GameLogic } from './gameLogic';
-import { StockType } from './types';
+import { StockType, GameMode } from './types';
 
 export { GameRoom };
 
@@ -80,17 +80,21 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
   if (resource === 'rooms') {
     // POST /api/rooms
     if (method === 'POST' && segments.length === 2) {
-      const { name } = await readBody(request);
+      const { name, mode } = await readBody(request);
       if (!name || typeof name !== 'string') {
         return apiError(400, 'INVALID_INPUT', 'Room name is required');
       }
+      if (mode !== undefined && !Object.values(GameMode).includes(mode)) {
+        return apiError(400, 'INVALID_INPUT', 'Invalid game mode');
+      }
+      const gameMode = (mode as GameMode) ?? GameMode.CLASSIC;
       // Invite codes are random, so collisions with an existing room are
       // vanishingly rare — but retry a few times just in case.
       for (let attempt = 0; attempt < 5; attempt++) {
         const inviteCode = GameLogic.generateInviteCode();
         try {
-          const room = await roomStub(env, inviteCode).createRoom(name, inviteCode);
-          return json({ success: true, data: { roomId: room.roomId, inviteCode: room.inviteCode, name } }, 201);
+          const room = await roomStub(env, inviteCode).createRoom(name, inviteCode, gameMode);
+          return json({ success: true, data: { roomId: room.roomId, inviteCode: room.inviteCode, name, mode: room.mode } }, 201);
         } catch (error) {
           if (error instanceof Error && error.message.includes('Room already exists')) {
             continue;
