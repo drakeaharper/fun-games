@@ -75,13 +75,13 @@ const GameBoard: React.FC<GameBoardProps> = ({ roomId, playerId, playerName, onL
 
     webSocketService.on('dice-rolled', (data) => {
       setLastDiceResult(data.diceResult);
-      setPriceChanges(prev => ({
-        ...prev,
+      // Only the most recent roll shows an indicator; prior ones clear.
+      setPriceChanges({
         [data.diceResult.resultStock]: {
           action: data.diceResult.resultAction,
           amount: data.diceResult.resultAmount
         }
-      }));
+      });
       setIsRolling(false);
       const stockName = data.diceResult.resultStock.toUpperCase();
       const rollMessage = `${data.playerName} rolled the dice! ${stockName} ${data.diceResult.resultAction.toUpperCase()} ${data.diceResult.resultAmount}¢`;
